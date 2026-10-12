@@ -345,6 +345,11 @@ body.editing #sel-bar { display: flex; }
           </div>
           <p class="hint" style="margin:8px 0 0;">ホーム画面に追加したあとで、データが共有されていない場合に使います。</p>
         </div>
+        <div class="field" style="margin:16px 0 0;">
+          <label>相手の画面に反映されないとき</label>
+          <button id="btn-resend" class="btn secondary tappable">この端末の内容を共有に送り直す</button>
+          <p class="hint" style="margin:8px 0 0;">この端末にある内容を、共有データにもう一度書き込みます。相手の端末で内容が消えてしまったときに、中身が残っている側の端末で押してください。</p>
+        </div>
       </div>
       <div class="card">
         <p style="font-weight:600;margin-bottom:4px;">📲 アプリとして使う</p>
@@ -526,7 +531,7 @@ function __fatal(e) {
     b1.onclick = () => location.reload();
     const b2 = document.createElement('button'); b2.textContent = 'この端末の保存データを初期化'; b2.style.cssText = 'display:block;width:100%;height:44px;border:1.5px solid #ef4444;border-radius:8px;background:#fff;color:#ef4444;font-size:15px;font-weight:600;';
     b2.onclick = () => {
-      try { const ks = []; for (let i = 0; i < localStorage.length; i++) ks.push(localStorage.key(i)); ks.forEach(k => { if (/^(travelPacking_v1|travelPlanDone_v1|travelSyncBase_)/.test(k)) localStorage.removeItem(k); }); } catch (x) {}
+      try { const ks = []; for (let i = 0; i < localStorage.length; i++) ks.push(localStorage.key(i)); ks.forEach(k => { if (/^(travelPacking_v1|travelPlanDone_v1|travelSyncBase)/.test(k)) localStorage.removeItem(k); }); } catch (x) {}
       location.reload();
     };
     box.append(h, t, m, b1, b2); app.appendChild(box);
@@ -1879,18 +1884,19 @@ function persistQuiet() {
   if (!a || !b) notifyOnce('save', SAVE_FAIL, 'error', 30000);
 }
 function loadBaseline() {
-  const b = parseJSON(store.get('travelSyncBase_' + SYNC.tripId), null);
+  const b = parseJSON(store.get('travelSyncBase2_' + SYNC.tripId), null);
   return b && typeof b === 'object' && !Array.isArray(b) ? b : null;
 }
 function saveBaseline() {
   let ok = false;
-  try { ok = store.set('travelSyncBase_' + SYNC.tripId, JSON.stringify(SYNC.baseline)); } catch (e) { ok = false; }
+  try { ok = store.set('travelSyncBase2_' + SYNC.tripId, JSON.stringify(SYNC.baseline)); } catch (e) { ok = false; }
   return ok;
 }
+const SYNC_KINDS = 'ifpdrsw'; // この版が扱う共有データの種類（キーの頭文字）
 function diffPatch() {
   const loc = buildFlat(), base = SYNC.baseline || {}, p = {};
   Object.keys(loc).forEach(k => { if (ser(loc[k]) !== ser(base[k])) p[k] = loc[k]; });
-  Object.keys(base).forEach(k => { if (!(k in loc)) p[k] = null; });
+  Object.keys(base).forEach(k => { if (!(k in loc) && SYNC_KINDS.indexOf(k[0]) >= 0) p[k] = null; }); // 知らない種類のデータ（新しい版が足したもの）は消さない
   return p;
 }
 function shareUrl() {
@@ -1929,7 +1935,12 @@ function onRemote(exists, remote, pending) {
   if (pending) return; // 自分の未確定の書き込みを含むスナップショットは無視
   if (SYNC.baseline === null) {
     // この端末で初めて開いた共有: 既にあれば相手のデータを採用、無ければ自分のデータを送る
-    if (exists) { SYNC.baseline = remote; applyFlat(remote); } else { SYNC.baseline = {}; }
+    if (exists) {
+      // 共有側に無いパスがこの端末にあれば残す（共有側から消えていた場合の取りこぼし防止。パスには初期値が無いので重複しない）
+      const out = Object.assign({}, remote), loc = buildFlat();
+      Object.keys(loc).forEach(k => { if (k[0] === 'w' && !(k in remote)) out[k] = loc[k]; });
+      SYNC.baseline = remote; applyFlat(out);
+    } else { SYNC.baseline = {}; }
   } else {
     // 自分が未送信の変更はそのまま残し、それ以外は相手の最新を取り込む
     const loc = buildFlat(), base = SYNC.baseline, out = {};
@@ -1967,6 +1978,11 @@ window.addEventListener('storage', e => {
   render();
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pushNow(); });
+$('btn-resend').addEventListener('click', () => {
+  if (!SYNC.api || SYNC.baseline === null) { showToast('共有につながっていません。接続を確認してください', 'error'); return; }
+  SYNC.baseline = {}; saveBaseline(); pushNow();
+  showToast('この端末の内容を共有に送りました');
+});
 $('btn-copy-share').addEventListener('click', async () => {
   const url = shareUrl();
   if (!url) { showToast('公開URLで開いたときだけ使えます', 'info'); return; }
