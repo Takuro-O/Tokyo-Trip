@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<title>東京旅行しおり</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="東京旅行">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root {
+  --c-bg: #ffffff;
+  --c-surface: #f8f9fa;
+  --c-border: #eeeeee;
+  --c-text: #1a1a1a;
+  --c-sub: #6b7280;
+  --c-primary: #2563eb;
+  --c-primary-light: #eff6ff;
+  --c-ship: #c2410c;
+  --c-ship-light: #fff4ec;
+  --c-danger: #ef4444;
+  --c-success: #22c55e;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 20px;
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.07);
+  --shadow-modal: 0 -4px 24px rgba(0,0,0,0.10);
+  --transition: 0.18s ease;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: var(--c-bg); color: var(--c-text);
+  font-size: 16px; line-height: 1.6;
+  -webkit-text-size-adjust: 100%; overscroll-behavior: none;
+}
+#app { max-width: 430px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
+button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
+input, textarea, select { font-family: inherit; font-size: 16px; }
+
+.tappable { transition: transform var(--transition), opacity var(--transition); -webkit-tap-highlight-color: transparent; }
+.tappable:active { transform: scale(0.97); opacity: 0.85; }
+
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--c-border);
+  padding: 0 8px 0 16px; height: 56px; display: flex; align-items: center; justify-content: space-between;
+}
+header h1 { font-size: 18px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
+header .days { font-size: 13px; color: var(--c-primary); font-weight: 600; background: var(--c-primary-light); padding: 2px 10px; border-radius: 12px; white-space: nowrap; margin-right: 4px; }
+.hd-btn { height: 40px; min-width: 40px; border: none; background: none; font-size: 18px; border-radius: 20px; color: var(--c-text); }
+.hd-btn.text { font-size: 14px; font-weight: 600; color: var(--c-primary); padding: 0 12px; }
+.hd-btn.on { background: var(--c-primary-light); }
+
+nav#bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--c-border);
+  display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100;
+}
+.nav-btn {
+  flex: 1; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: none; border: none; font-size: 10px; color: var(--c-sub);
+}
+.nav-btn.active { color: var(--c-primary); font-weight: 600; }
+
+.card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-m); padding: 16px; margin: 0 16px 12px; box-shadow: var(--shadow-card); }
+
+/* 進捗 */
+.progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 16px 16px; }
+.pcard { border-radius: var(--radius-m); padding: 12px; }
+.pcard.carry { background: var(--c-primary-light); }
+.pcard.ship { background: var(--c-ship-light); }
+.pcard .ttl { font-size: 13px; font-weight: 600; }
+.pcard.carry .ttl { color: var(--c-primary); }
+.pcard.ship .ttl { color: var(--c-ship); }
+.pcard .num { font-size: 22px; font-weight: 700; margin: 2px 0 6px; }
+.pcard .num small { font-size: 13px; font-weight: 400; color: var(--c-sub); }
+.bar { height: 6px; background: rgba(0,0,0,0.08); border-radius: 3px; overflow: hidden; }
+.bar > div { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+.carry .bar > div { background: var(--c-primary); }
+.ship .bar > div { background: var(--c-ship); }
+
+/* セグメント */
+.seg { display: flex; background: var(--c-surface); border-radius: var(--radius-s); padding: 3px; margin: 0 16px 12px; }
+.seg-btn { flex: 1; height: 38px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; background: transparent; color: var(--c-sub); transition: background var(--transition), color var(--transition), box-shadow var(--transition); }
+.seg-btn.active { background: var(--c-bg); color: var(--c-text); box-shadow: var(--shadow-card); }
+
+/* 検索 */
+.search { position: relative; margin: 0 16px 12px; }
+.search span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--c-sub); }
+.search input { width: 100%; height: 40px; padding: 0 12px 0 38px; background: var(--c-surface); border: none; border-radius: var(--radius-s); font-size: 16px; outline: none; }
+
+/* セクション */
+.sec-title { font-size: 13px; font-weight: 600; color: var(--c-sub); padding: 0 16px; margin: 20px 0 8px; display: flex; align-items: center; gap: 6px; }
+.sec-title:first-child { margin-top: 4px; }
+
+/* アイテム（スワイプ削除対応） */
+.item-wrap { position: relative; margin: 0 16px 8px; border-radius: var(--radius-m); overflow: hidden; touch-action: pan-y; }
+.swipe-bg { position: absolute; inset: 0; background: var(--c-danger); color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; padding-right: 20px; opacity: 0; }
+.item-wrap.swiping .swipe-bg { opacity: 1; }
+.editing .swipe-bg { display: none; }
+.item { position: relative; display: flex; align-items: center; gap: 2px; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-m); box-shadow: var(--shadow-card); transition: transform 0.2s ease; }
+.item-main { flex: 1; min-width: 0; min-height: 56px; display: flex; align-items: center; gap: 12px; background: none; border: none; text-align: left; color: var(--c-text); padding: 8px 4px 8px 12px; border-radius: var(--radius-m); -webkit-tap-highlight-color: transparent; }
+.item-main:active { background: var(--c-surface); }
+.chk { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #b8bec7; background: #fff; color: #fff; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: background var(--transition), border-color var(--transition); }
+.chk.pop { animation: pop 0.22s ease; }
+@keyframes pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+.item.carry .chk.on { background: var(--c-primary); border-color: var(--c-primary); }
+.item.ship .chk.on { background: var(--c-ship); border-color: var(--c-ship); }
+.chk.sel { background: var(--c-danger); border-color: var(--c-danger); }
+.item-text { display: block; min-width: 0; }
+.item-name { display: block; font-size: 16px; line-height: 1.4; word-break: break-word; }
+.item-memo { display: block; font-size: 13px; line-height: 1.4; color: var(--c-sub); word-break: break-word; }
+.item.done .item-name { text-decoration: line-through; color: var(--c-sub); }
+.edit-btn { flex: none; width: 44px; height: 44px; background: none; border: none; font-size: 16px; color: #b8bec7; }
+.editing .edit-btn { display: none; }
+
+/* 整理モードの操作バー */
+#sel-bar { display: none; position: fixed; bottom: calc(56px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; padding: 10px 16px; gap: 10px; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--c-border); z-index: 95; }
+body.editing #sel-bar { display: flex; }
+#sel-bar .btn { height: 44px; font-size: 15px; flex: 1; }
+#sel-del:disabled { opacity: 0.4; }
+
+/* 空状態 */
+.empty { text-align: center; padding: 48px 24px; color: var(--c-sub); }
+.empty .ic { font-size: 48px; margin-bottom: 16px; }
+.empty p.t { font-size: 16px; font-weight: 600; color: var(--c-text); margin-bottom: 8px; }
+.empty p { font-size: 14px; }
+
+/* ボタン */
+.btn { width: 100%; height: 48px; border-radius: var(--radius-s); font-size: 16px; font-weight: 600; border: none; }
+.btn.primary { background: var(--c-primary); color: #fff; }
+.btn.secondary { background: transparent; color: var(--c-primary); border: 1.5px solid var(--c-primary); }
+.btn.danger { background: var(--c-danger); color: #fff; }
+.btn.ghost { background: transparent; color: var(--c-sub); height: 44px; }
+.btn.dangerline { background: transparent; color: var(--c-danger); border: 1.5px solid var(--c-danger); }
+
+/* フォーム */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 13px; font-weight: 600; color: var(--c-sub); margin-bottom: 6px; }
+.field input, .field textarea { width: 100%; padding: 0 12px; height: 44px; border: 1.5px solid var(--c-border); border-radius: var(--radius-s); outline: none; background: var(--c-bg); color: var(--c-text); transition: border-color var(--transition); }
+.field textarea { height: 88px; padding: 10px 12px; resize: none; }
+.field input:focus, .field textarea:focus { border-color: var(--c-primary); }
+.field input.err { border-color: var(--c-danger); }
+.ferr { font-size: 12px; color: var(--c-danger); margin-top: 4px; }
+.dest-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dest-opt { height: 64px; border-radius: var(--radius-m); border: 2px solid var(--c-border); background: var(--c-bg); color: var(--c-text); font-size: 14px; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
+.dest-opt .e { font-size: 22px; line-height: 1.2; }
+.dest-opt.sel.carry { border-color: var(--c-primary); background: var(--c-primary-light); color: var(--c-primary); }
+.dest-opt.sel.ship { border-color: var(--c-ship); background: var(--c-ship-light); color: var(--c-ship); }
+
+/* モーダル */
+.overlay { display: none; position: fixed; inset: 0; z-index: 200; align-items: flex-end; justify-content: center; }
+.overlay .bg { position: absolute; inset: 0; background: rgba(0,0,0,0.45); }
+.sheet { position: relative; width: 100%; max-width: 430px; background: var(--c-bg); border-radius: var(--radius-l) var(--radius-l) 0 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); max-height: 90dvh; overflow-y: auto; box-shadow: var(--shadow-modal); animation: slideUp 0.25s ease; }
+.grab { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 20px; }
+.sheet h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+#confirm-dialog { z-index: 300; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* ヒント */
+.hint { font-size: 13px; color: var(--c-sub); margin: 0 16px 12px; line-height: 1.6; }
+.banner { margin: 0 16px 12px; padding: 12px 14px; border-radius: var(--radius-m); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; background: var(--c-ship-light); color: var(--c-ship); border: 1px solid #fed7aa; }
+.banner.urgent { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.banner .e { font-size: 22px; }
+.banner small { display: block; font-size: 12px; font-weight: 400; opacity: 0.9; }
+.nav-badge { display: none; position: absolute; top: -6px; left: 22px; min-width: 18px; height: 18px; background: var(--c-sub); color: #fff; border-radius: 9px; font-size: 10px; font-weight: 700; padding: 0 5px; line-height: 14px; text-align: center; border: 2px solid var(--c-bg); white-space: nowrap; }
+.copy-row { display: flex; gap: 8px; }
+.copy-row input { flex: 1; }
+.copy-row button { flex: none; width: 72px; height: 44px; border: 1.5px solid var(--c-primary); background: var(--c-bg); color: var(--c-primary); border-radius: var(--radius-s); font-size: 14px; font-weight: 600; }
+
+/* 日程 */
+/* ショー・パス */
+.pass { margin: 0 16px 12px; padding: 12px; background: var(--c-bg); border: 1.5px solid var(--c-border); border-radius: var(--radius-m); }
+.pass.st-won { border-color: #86efac; background: #f0fdf4; }
+.pass.st-lost { opacity: .72; }
+.pass-top { display: flex; align-items: flex-start; gap: 8px; }
+.pass-title { flex: 1; font-size: 15px; font-weight: 700; line-height: 1.4; }
+.pass-title small { display: block; font-size: 12px; font-weight: 500; color: var(--c-sub); margin-top: 2px; }
+.pass-time { display: inline-block; margin-top: 6px; font-size: 14px; font-weight: 700; color: #15803d; }
+.pass-note { margin-top: 6px; font-size: 13px; color: var(--c-sub); line-height: 1.6; white-space: pre-wrap; }
+.pass-edit { flex: none; width: 44px; height: 44px; margin: -8px -8px 0 0; background: none; border: none; font-size: 16px; color: #b8bec7; }
+.pass-st { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+.pass-st button { height: 40px; border: 1.5px solid var(--c-border); border-radius: 8px; background: var(--c-bg); color: var(--c-sub); font-size: 12px; font-weight: 600; }
+.pass-st button.on[data-st="none"] { background: var(--c-surface); border-color: var(--c-sub); color: var(--c-text); }
+.pass-st button.on[data-st="wait"] { background: #fef9c3; border-color: #eab308; color: #854d0e; }
+.pass-st button.on[data-st="won"] { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+.pass-st button.on[data-st="lost"] { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+.pass-sum { margin: 0 16px 8px; font-size: 12px; color: var(--c-sub); }
+.seg-pick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg-pick button { height: 44px; border: 1.5px solid var(--c-border); border-radius: 8px; background: var(--c-bg); color: var(--c-sub); font-size: 13px; font-weight: 600; }
+.seg-pick button.sel { border-color: var(--c-primary); background: var(--c-primary-light); color: var(--c-primary); }
+.field select { width: 100%; padding: 0 12px; height: 44px; border: 1.5px solid var(--c-border); border-radius: var(--radius-s); background: var(--c-bg); color: var(--c-text); }
+
+.day-h { margin: 20px 16px 8px; font-size: 16px; font-weight: 700; }
+.day-h small { font-size: 12px; font-weight: 400; color: var(--c-sub); margin-left: 6px; }
+.tl { margin: 0 16px 8px; border: 1px solid var(--c-border); border-radius: var(--radius-m); box-shadow: var(--shadow-card); background: var(--c-bg); overflow: hidden; }
+.prow { display: flex; gap: 12px; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--c-border); padding: 12px; color: var(--c-text); -webkit-tap-highlight-color: transparent; align-items: flex-start; }
+.prow:last-child { border-bottom: none; }
+.prow:active { background: var(--c-surface); }
+.ptime { flex: none; width: 58px; font-size: 15px; font-weight: 700; color: var(--c-primary); line-height: 1.5; }
+.pbody { flex: 1; min-width: 0; }
+.ptitle { display: block; font-size: 15px; line-height: 1.5; word-break: break-word; }
+.pnote { display: block; font-size: 13px; color: var(--c-sub); line-height: 1.5; word-break: break-word; margin-top: 2px; }
+.pchk { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #b8bec7; background: #fff; color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.prow.done .pchk { background: var(--c-primary); border-color: var(--c-primary); }
+.prow.done .ptitle { text-decoration: line-through; color: var(--c-sub); }
+.prow.done .ptime { color: var(--c-sub); }
+.prow.sub .ptime { color: var(--c-sub); font-weight: 600; }
+
+.day-h { display: flex; align-items: baseline; justify-content: space-between; width: calc(100% - 32px); background: none; border: none; text-align: left; color: var(--c-text); font-family: inherit; padding: 4px 0; }
+.dh-r { font-size: 12px; font-weight: 600; color: var(--c-sub); flex: none; margin-left: 8px; }
+.dh-r i { font-style: normal; font-size: 14px; margin-left: 2px; }
+.prow { align-items: flex-start; border-bottom: 1px solid var(--c-border); padding: 4px 4px 4px 12px; gap: 10px; }
+.prow:active { background: none; }
+.pbody { padding: 8px 0; }
+.pbody.more { cursor: pointer; }
+.pnote { margin-top: 4px; padding: 8px 10px; background: var(--c-surface); border-radius: var(--radius-s); }
+.car { font-style: normal; font-size: 11px; color: var(--c-sub); margin-left: 6px; }
+.pchk { width: 44px; height: 44px; border: none; background: none; position: relative; margin: 0; }
+.pchk::before { content: ""; position: absolute; left: 10px; top: 10px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #b8bec7; background: #fff; box-sizing: border-box; }
+.pchk { color: #fff; font-size: 14px; font-weight: 700; line-height: 44px; z-index: 0; }
+.pchk { isolation: isolate; }
+.prow.done .pchk { background: none; }
+.prow.done .pchk::before { background: var(--c-primary); border-color: var(--c-primary); }
+.pchk { text-align: center; }
+.ptime { padding-top: 8px; }
+.sync-dot { width: 12px; height: 12px; border-radius: 50%; margin: 0 12px 0 6px; flex: none; background: #9ca3af; box-shadow: 0 0 0 6px transparent; cursor: pointer; }
+.sync-dot.ok { background: var(--c-success); }
+.sync-dot.pend { background: #f59e0b; }
+.prow.must { box-shadow: inset 3px 0 0 var(--c-danger); }
+.dl { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: #fef2f2; color: #b91c1c; }
+.nx { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: var(--c-primary); color: #fff; }
+.prow.next { background: var(--c-primary-light); }
+.prow.done .dl { background: var(--c-surface); color: var(--c-sub); }
+.plinks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.plinks a { display: inline-block; padding: 8px 12px; border-radius: 18px; background: var(--c-bg); border: 1px solid var(--c-border); color: var(--c-primary); font-size: 13px; font-weight: 600; text-decoration: none; }
+.ptime small { font-size: 11px; font-weight: 600; color: var(--c-sub); }
+.ptime small.sfx { display: block; line-height: 1.2; margin-top: -2px; }
+.day-acts { display: flex; gap: 10px; margin: 0 16px 8px; }
+.day-acts button { flex: 1; height: 40px; border-radius: var(--radius-s); border: 1.5px dashed #cfd5dd; background: none; color: var(--c-sub); font-size: 13px; font-weight: 600; }
+.pacts { display: flex; gap: 8px; margin-top: 10px; }
+.pacts button { height: 36px; min-width: 44px; padding: 0 12px; border-radius: 18px; border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-text); font-size: 13px; font-weight: 600; }
+.pacts button:last-child { margin-left: auto; color: var(--c-primary); }
+.pacts button:disabled { opacity: 0.35; }
+#row-modal, #day-modal { z-index: 200; }
+.fx { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: #f3e8ff; color: #6b21a8; }
+.prow.done .fx { background: var(--c-surface); color: var(--c-sub); }
+.chkrow { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; padding: 12px; border: 1.5px solid var(--c-border); border-radius: var(--radius-m); }
+.chkrow input { width: 22px; height: 22px; margin-top: 2px; flex: none; accent-color: #7c3aed; }
+.chkrow span { display: block; font-size: 15px; }
+.chkrow small { display: block; font-size: 12px; color: var(--c-sub); margin-top: 2px; }
+.item-name, .item-memo, .ptitle, .pnote, .dh-l, .toast-msg { overflow-wrap: anywhere; word-break: break-word; }
+.pnote { white-space: pre-line; }
+.field input, .field textarea, .copy-row input { min-width: 0; }
+#toast-box { position: fixed; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 8px; align-items: center; width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
+.toast { pointer-events: auto; color: #fff; padding: 10px 18px; border-radius: 24px; font-size: 14px; font-weight: 600; display: flex; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.15); transition: opacity 0.25s; opacity: 0; max-width: 100%; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 id="hd-title">東京旅行 11/1〜3</h1>
+    <div style="display:flex;align-items:center;flex:none;">
+      <span id="sync-dot" class="sync-dot off" title="同期なし"></span>
+      <span id="hd-days" class="days" style="display:none;"></span>
+      <span id="hd-list-tools" style="display:flex;align-items:center;gap:2px;">
+        <button id="btn-add" class="hd-btn tappable" aria-label="持ち物を追加" style="font-size:24px;font-weight:300;">＋</button>
+        <button id="btn-search" class="hd-btn tappable" aria-label="検索">🔍</button>
+        <button id="btn-edit" class="hd-btn text tappable">削除</button>
+      </span>
+    </div>
+  </header>
+
+  <main style="flex:1;overflow-y:auto;padding:16px 0 calc(140px + env(safe-area-inset-bottom));">
+    <!-- リスト -->
+    <div id="page-list" class="page">
+      <div id="banner"></div>
+      <div id="progress"></div>
+      <div class="seg" id="seg">
+        <button class="seg-btn tappable active" data-seg="all">すべて</button>
+        <button class="seg-btn tappable" data-seg="carry">🎒 手持ち</button>
+        <button class="seg-btn tappable" data-seg="ship">📦 送る</button>
+      </div>
+      <div class="search" id="search-wrap" style="display:none;">
+        <span>🔍</span>
+        <input id="search-input" type="search" placeholder="持ち物を検索" enterkeyhint="search">
+      </div>
+      <div id="list"></div>
+    </div>
+
+    <!-- ショー・パス -->
+    <div id="page-pass" class="page" style="display:none;">
+      <p id="pass-sum" class="pass-sum"></p>
+      <div id="pass-body"></div>
+      <div style="margin:16px 16px 0;"><button id="btn-add-pass" class="btn secondary tappable">＋ ショー・パスを追加</button></div>
+    </div>
+
+    <!-- 日程 -->
+    <div id="page-plan" class="page" style="display:none;">
+      <div id="plan-body"></div>
+      <div style="margin:16px 16px 0;">
+        <button id="btn-add-day" class="btn secondary tappable">＋ 日を追加</button>
+      </div>
+    </div>
+
+    <!-- 送付情報 -->
+    <div id="page-info" class="page" style="display:none;">
+      <p class="hint">共有・バックアップと、ホテルへ荷物を送るときの情報をまとめています。入力内容は自動で保存されます。</p>
+      <div class="card">
+        <p style="font-weight:600;margin-bottom:4px;">👫 共有（同じデータを一緒に編集）</p>
+        <p class="hint" id="share-status" style="margin:0 0 12px;"></p>
+        <div class="copy-row">
+          <input id="share-url" type="text" readonly placeholder="共有リンク">
+          <button id="btn-copy-share" class="tappable">コピー</button>
+        </div>
+        <p class="hint" style="margin:12px 0 0;">このリンクを開いた人は、持ち物・日程・荷物の送り先情報を編集できます。ご家族以外には送らないでください。</p>
+        <div class="field" style="margin:16px 0 0;">
+          <label>共有リンクで参加する（送られてきたリンクを貼る）</label>
+          <div class="copy-row">
+            <input id="join-input" type="text" placeholder="共有リンクまたはコード">
+            <button id="btn-join" class="tappable">参加</button>
+          </div>
+          <p class="hint" style="margin:8px 0 0;">ホーム画面に追加したあとで、データが共有されていない場合に使います。</p>
+        </div>
+      </div>
+      <div class="card">
+        <p style="font-weight:600;margin-bottom:4px;">📲 アプリとして使う</p>
+        <p class="hint" id="install-text" style="margin:0 0 12px;">iPhone: Safari の共有ボタン →「ホーム画面に追加」。<br>Android: Chrome のメニュー →「アプリをインストール」または「ホーム画面に追加」。</p>
+        <button id="btn-install" class="btn primary tappable" style="display:none;">ホーム画面に追加する</button>
+      </div>
+      <div class="card">
+        <div class="field"><label>旅行名</label><input type="text" data-key="trip" placeholder="例：京都 2泊3日"></div>
+        <div class="field" style="margin-bottom:0;"><label>出発日</label><input type="date" data-key="depart"></div>
+      </div>
+      <div class="card">
+        <div class="field"><label>📦 送り先のホテル名</label><input type="text" data-key="stay" placeholder="例：〇〇ホテル"></div>
+        <div class="field">
+          <label>送り先の住所</label>
+          <div class="copy-row">
+            <input type="text" data-key="addr" placeholder="住所を入力">
+            <button class="tappable" data-copy="addr">コピー</button>
+          </div>
+        </div>
+        <div class="field"><label>発送する日</label><input type="date" data-key="sendDate"></div>
+        <div class="field"><label>荷物の到着予定日（チェックイン日など）</label><input type="date" data-key="arrive"></div>
+        <div class="field">
+          <label>追跡番号</label>
+          <div class="copy-row">
+            <input type="text" data-key="tracking" placeholder="伝票番号">
+            <button class="tappable" data-copy="tracking">コピー</button>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;"><label>メモ（宛名の書き方、フロントへの伝言など）</label><textarea data-key="memo" placeholder="例：「◯月◯日宿泊 山田」宛て・事前に連絡済み"></textarea></div>
+      </div>
+            <div class="card">
+        <p style="font-weight:600;margin-bottom:4px;">💾 データのバックアップ</p>
+        <p class="hint" style="margin:0 0 12px;">データはこの端末と、共有用のクラウドの両方に保存されます。端末のデータが消えても、共有リンクから開き直せば元に戻ります。念のため、旅行前にバックアップも取っておくと安心です。</p>
+        <button id="btn-export" class="btn secondary tappable" style="margin-bottom:10px;">バックアップを書き出す</button>
+        <button id="btn-import" class="btn secondary tappable">バックアップを読み込む</button>
+        <input id="import-file" type="file" accept=".json,application/json" style="display:none;">
+      </div>
+      <div style="margin:24px 16px 0;">
+        <button id="btn-copy-ship" class="btn primary tappable" style="margin-bottom:12px;">📋 ホテルへ送る荷物リストをコピー</button>
+        <button id="btn-defaults" class="btn secondary tappable" style="margin-bottom:12px;">🧳 一般的な持ち物を追加（足りない分だけ）</button>
+        <button id="btn-uncheck" class="btn secondary tappable" style="margin-bottom:12px;">✓ チェックをすべて外す</button>
+        <button id="btn-clear" class="btn dangerline tappable">持ち物をすべて削除</button>
+      </div>
+    </div>
+  </main>
+
+
+  <div id="sel-bar">
+    <button id="sel-all" class="btn secondary tappable">すべて選択</button>
+    <button id="sel-del" class="btn danger tappable" disabled>削除（0）</button>
+  </div>
+
+  <nav id="bottom-nav">
+    <button class="nav-btn tappable active" data-page="plan">
+      <span style="font-size:22px;">🗓</span><span>日程</span>
+    </button>
+    <button class="nav-btn tappable" data-page="pass">
+      <span style="font-size:22px;">🎟</span><span>パス</span>
+    </button>
+    <button class="nav-btn tappable" data-page="list">
+      <span style="font-size:22px;position:relative;">🧳<span id="badge-list" class="nav-badge"></span></span><span>持ち物</span>
+    </button>
+    <button class="nav-btn tappable" data-page="info">
+      <span style="font-size:22px;">⚙️</span><span>設定</span>
+    </button>
+  </nav>
+</div>
+
+<!-- 追加・編集モーダル -->
+<div id="modal" class="overlay">
+  <div class="bg" id="modal-bg"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="modal-title">持ち物を追加</h2>
+    <div class="field">
+      <label>持ち物の名前</label>
+      <input id="f-name" type="text" placeholder="例：充電器" maxlength="40" autocomplete="off" enterkeyhint="next">
+    </div>
+    <div class="field">
+      <label>運び方</label>
+      <div class="dest-pick">
+        <button class="dest-opt carry tappable" data-dest="carry"><span class="e">🎒</span>手で持っていく</button>
+        <button class="dest-opt ship tappable" data-dest="ship"><span class="e">📦</span>ホテルへ送る</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>メモ（任意）</label>
+      <input id="f-memo" type="text" placeholder="例：機内に持ち込む／3日分" maxlength="60" autocomplete="off" enterkeyhint="done">
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+      <button id="btn-save" class="btn primary tappable">保存</button>
+      <button id="btn-save-next" class="btn secondary tappable">続けて追加</button>
+    </div>
+    <button id="btn-delete" class="btn dangerline tappable" style="margin-bottom:10px;display:none;">削除</button>
+    <button id="btn-cancel" class="btn ghost tappable">閉じる</button>
+  </div>
+</div>
+
+<!-- 日程: 予定の追加・編集 -->
+<div id="row-modal" class="overlay">
+  <div class="bg" id="row-bg"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="row-title">予定を追加</h2>
+    <div class="field"><label>時刻</label><input id="pm-t" type="text" placeholder="例：9:20　／　約10:00　／　11:00まで" maxlength="20" autocomplete="off"></div>
+    <div class="field"><label>内容</label><input id="pm-title" type="text" placeholder="例：ホテルをチェックアウト" maxlength="60" autocomplete="off"></div>
+    <label class="chkrow"><input type="checkbox" id="pm-fx"><span><b>📌 動かせない予定</b><small>予約済み・時間を変えられない予定（バス、飛行機、レストランなど）</small></span></label>
+    <div class="field"><label>メモ（任意）</label><textarea id="pm-note" placeholder="例：公式は11:00。早めの設定" maxlength="300"></textarea></div>
+    <div class="field"><label>赤い目印（任意）</label><input id="pm-dl" type="text" placeholder="例：必須 9:42　／　締切 11:00" maxlength="20" autocomplete="off"></div>
+    <div class="field"><label>地図で開く場所（任意）</label><input id="pm-map" type="text" placeholder="例：羽田空港 第1ターミナル" maxlength="80" autocomplete="off"></div>
+    <div class="field"><label>電話番号（任意）</label><input id="pm-tel" type="tel" placeholder="例：050-5485-2449" maxlength="20" autocomplete="off"></div>
+    <div class="field"><label>リンク（任意）</label><input id="pm-url" type="url" placeholder="https://" maxlength="300" autocomplete="off"></div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;"><button id="pm-save" class="btn primary tappable">保存</button></div>
+    <button id="pm-delete" class="btn dangerline tappable" style="margin-bottom:10px;display:none;">この予定を削除</button>
+    <button id="pm-cancel" class="btn ghost tappable">閉じる</button>
+  </div>
+</div>
+<!-- 日程: 日の追加・編集 -->
+<div id="day-modal" class="overlay">
+  <div class="bg" id="day-bg"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="day-title-h">日を追加</h2>
+    <div class="field"><label>日付・名前</label><input id="dm-title" type="text" placeholder="例：11/2（月）観光" maxlength="30" autocomplete="off"></div>
+    <div class="field"><label>ひとこと（任意）</label><input id="dm-sub" type="text" placeholder="例：DisneyLand" maxlength="40" autocomplete="off"></div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;"><button id="dm-save" class="btn primary tappable">保存</button></div>
+    <button id="dm-delete" class="btn dangerline tappable" style="margin-bottom:10px;display:none;">この日を削除</button>
+    <button id="dm-cancel" class="btn ghost tappable">閉じる</button>
+  </div>
+</div>
+
+<!-- ショー・パス: 追加・編集 -->
+<div id="pass-modal" class="overlay">
+  <div class="bg" id="pass-bg"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="pass-title-h">ショー・パスを追加</h2>
+    <div class="field"><label>種類</label>
+      <select id="ps-kind"></select></div>
+    <div class="field"><label>名前</label><input id="ps-title" type="text" placeholder="例：ビッグバンドビート／DPA 〇〇" maxlength="40" autocomplete="off"></div>
+    <div class="field"><label>パーク・日にち</label>
+      <div style="display:flex;gap:8px;"><select id="ps-park" style="flex:1.2;"></select><input id="ps-day" type="text" placeholder="例：11/2" maxlength="10" autocomplete="off" style="flex:1;width:auto;"></div></div>
+    <div class="field"><label>状況</label><div class="seg-pick" id="ps-status"></div></div>
+    <div class="field"><label>時間（当選・指定された時間／受付時刻）</label><input id="ps-time" type="text" placeholder="例：14:30　／　7:00 受付開始" maxlength="20" autocomplete="off"></div>
+    <div class="field"><label>メモ（任意）</label><textarea id="ps-note" placeholder="例：アプリで抽選。受付は開園の30分前" maxlength="300"></textarea></div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;"><button id="ps-save" class="btn primary tappable">保存</button></div>
+    <button id="ps-delete" class="btn dangerline tappable" style="margin-bottom:10px;display:none;">削除</button>
+    <button id="ps-cancel" class="btn ghost tappable">閉じる</button>
+  </div>
+</div>
+
+<!-- 確認ダイアログ -->
+<div id="confirm-dialog" class="overlay">
+  <div class="bg" id="confirm-bg"></div>
+  <div class="sheet" style="padding-top:24px;">
+    <div class="grab" style="margin-bottom:16px;"></div>
+    <p id="confirm-title" style="font-size:16px;font-weight:700;margin-bottom:8px;"></p>
+    <p id="confirm-msg" style="font-size:14px;color:var(--c-sub);margin-bottom:24px;"></p>
+    <button id="confirm-ok" class="btn danger tappable" style="margin-bottom:10px;">削除する</button>
+    <button id="confirm-cancel" class="btn ghost tappable">キャンセル</button>
+  </div>
+</div>
+
+<script>
+// 起動に失敗したときの最終手段（真っ白な画面にしない）
+function __fatal(e) {
+  try {
+    console.error(e);
+    const app = document.getElementById('app') || document.body;
+    app.innerHTML = '';
+    const box = document.createElement('div');
+    box.style.cssText = 'max-width:430px;margin:0 auto;padding:48px 24px;text-align:center;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;';
+    const h = document.createElement('p'); h.textContent = '⚠️'; h.style.fontSize = '44px';
+    const t = document.createElement('p'); t.textContent = 'アプリを開けませんでした'; t.style.cssText = 'font-size:18px;font-weight:700;margin:8px 0;';
+    const m = document.createElement('p'); m.textContent = '画面を再読み込みしてください。直らない場合は、この端末の保存データを初期化できます（共有しているデータはクラウドに残ります）。'; m.style.cssText = 'font-size:14px;color:#6b7280;line-height:1.7;margin-bottom:24px;';
+    const b1 = document.createElement('button'); b1.textContent = '再読み込み'; b1.style.cssText = 'display:block;width:100%;height:48px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:16px;font-weight:600;margin-bottom:12px;';
+    b1.onclick = () => location.reload();
+    const b2 = document.createElement('button'); b2.textContent = 'この端末の保存データを初期化'; b2.style.cssText = 'display:block;width:100%;height:44px;border:1.5px solid #ef4444;border-radius:8px;background:#fff;color:#ef4444;font-size:15px;font-weight:600;';
+    b2.onclick = () => {
+      try { const ks = []; for (let i = 0; i < localStorage.length; i++) ks.push(localStorage.key(i)); ks.forEach(k => { if (/^(travelPacking_v1|travelPlanDone_v1|travelSyncBase_)/.test(k)) localStorage.removeItem(k); }); } catch (x) {}
+      location.reload();
+    };
+    box.append(h, t, m, b1, b2); app.appendChild(box);
+  } catch (x) {}
+}
+function __app() {
+const KEY = 'travelPacking_v1';
+
+/* ---------- 安全装置（保存・入力の正規化・エラー通知） ---------- */
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+  del(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+};
+function parseJSON(raw, fallback) {
+  if (raw === null || raw === undefined || raw === '') return fallback;
+  try { const v = JSON.parse(raw); return v === undefined ? fallback : v; } catch (e) { return fallback; }
+}
+const bootNotices = [];
+const SAVE_FAIL = 'この端末に保存できませんでした。共有をつないでいればクラウドには残ります。バックアップも取っておくと安心です';
+const MAX_ITEMS = 300, MAX_ROWS = 300, MAX_DAYS = 30, MAX_PASSES = 100;
+const INFO_LIMIT = { trip: 40, depart: 10, stay: 60, addr: 200, sendDate: 10, arrive: 10, tracking: 40, memo: 500 };
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const STRIP = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B\u200C\u2028\u2029\uFEFF]/g;
+function clip(str, max) { const a = Array.from(str); return a.length > max ? a.slice(0, max).join('') : str; }
+function cleanText(v, max) {
+  if (v === null || v === undefined || typeof v === 'object') return '';
+  return clip(String(v).replace(STRIP, '').replace(/\s+/g, ' ').trim(), max);
+}
+function cleanMulti(v, max) {
+  if (v === null || v === undefined || typeof v === 'object') return '';
+  return clip(String(v).replace(/\r\n?/g, '\n').replace(STRIP, '').replace(/[ \t　]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n{3,}/g, '\n\n').trim(), max);
+}
+function normInfoVal(k, v) {
+  if (k === 'depart' || k === 'sendDate' || k === 'arrive') { const t = cleanText(v, 10); return DATE_RE.test(t) ? t : ''; }
+  if (k === 'memo') return cleanMulti(v, INFO_LIMIT.memo);
+  return cleanText(v, INFO_LIMIT[k] || 100);
+}
+function normInfo(o) {
+  const info = emptyInfo();
+  if (o && typeof o === 'object') Object.keys(info).forEach(k => { info[k] = normInfoVal(k, o[k]); });
+  return info;
+}
+function normItems(arr) {
+  if (!Array.isArray(arr)) return [];
+  const used = new Set(), base = Date.now(), out = [];
+  arr.forEach((it, idx) => {
+    if (!it || typeof it !== 'object') return;
+    const name = cleanText(it.name, 40);
+    if (!name) return;
+    let id = Number(it.id);
+    if (!Number.isFinite(id) || id <= 0 || used.has(id)) id = base + idx;
+    while (used.has(id)) id++;
+    used.add(id);
+    out.push({ id, name, memo: cleanText(it.memo, 60), dest: it.dest === 'ship' ? 'ship' : 'carry', done: !!it.done });
+  });
+  return out.slice(0, MAX_ITEMS);
+}
+function safeLinks(a) {
+  return Array.isArray(a) ? a.filter(k => k && typeof k.h === 'string' && k.h.length <= 1200 && /^(https?:|tel:)/i.test(k.h.trim())).slice(0, 4).map(k => ({ l: cleanText(k.l, 20), h: k.h.trim() })) : [];
+}
+function normPlan(pl) {
+  if (!pl || typeof pl !== 'object' || !Array.isArray(pl.days) || !Array.isArray(pl.rows)) return null;
+  const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const days = [], seenD = new Set();
+  pl.days.forEach(d => {
+    if (!d || typeof d !== 'object') return;
+    const id = cleanText(d.id, 40), title = cleanText(d.title, 30);
+    if (!id || !title || seenD.has(id)) return;
+    seenD.add(id);
+    days.push({ id, title, sub: cleanText(d.sub, 40), order: num(d.order) });
+  });
+  const rows = [], seenR = new Set();
+  pl.rows.forEach(r => {
+    if (!r || typeof r !== 'object') return;
+    const id = cleanText(r.id, 40), title = cleanText(r.title, 60), day = cleanText(r.day, 40);
+    if (!id || !title || !seenD.has(day) || seenR.has(id)) return;
+    seenR.add(id);
+    rows.push({ id, day, order: num(r.order), t: cleanText(r.t, 20), title, note: cleanMulti(r.note, 300), dl: cleanText(r.dl, 20), fx: r.fx === undefined ? undefined : !!r.fx, links: safeLinks(r.links) });
+  });
+  return { days: days.slice(0, MAX_DAYS), rows: rows.slice(0, MAX_ROWS), seeded: !!pl.seeded || days.length > 0 || rows.length > 0 };
+}
+const PASS_KINDS = { show: '🎭 ショー', parade: '🎆 パレード', dpa: '⚡ DPA', pp: '🎟 プライオリティパス', entry: '🎲 エントリー受付（抽選）', other: '📌 その他' };
+const PASS_PARKS = { '': 'パーク未定', land: 'ランド', sea: 'シー' };
+const PASS_STATUS = { none: '未申込', wait: '結果待ち', won: '当選', lost: '落選' };
+function normPasses(arr) {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set(), out = [];
+  arr.forEach(x => {
+    if (!x || typeof x !== 'object') return;
+    const id = cleanText(x.id, 40), title = cleanText(x.title, 40);
+    if (!id || !title || seen.has(id)) return;
+    seen.add(id);
+    out.push({
+      id, title,
+      kind: PASS_KINDS[x.kind] ? x.kind : 'other',
+      park: PASS_PARKS[x.park] !== undefined ? x.park : '',
+      day: cleanText(x.day, 10),
+      status: PASS_STATUS[x.status] ? x.status : 'none',
+      time: cleanText(x.time, 20),
+      note: cleanMulti(x.note, 300)
+    });
+  });
+  return out.slice(0, MAX_PASSES);
+}
+function normDone(o) {
+  const out = {};
+  if (o && typeof o === 'object' && !Array.isArray(o)) Object.keys(o).slice(0, 1000).forEach(k => { if (o[k]) out[cleanText(k, 40)] = true; });
+  return out;
+}
+const lastNotified = {};
+function notifyOnce(key, msg, type, ms) {
+  const now = Date.now();
+  if (lastNotified[key] && now - lastNotified[key] < (ms || 10000)) return;
+  lastNotified[key] = now;
+  try { showToast(msg, type || 'error'); } catch (e) {}
+}
+function reportError(err, msg) {
+  try { console.error(err); } catch (e) {}
+  notifyOnce('err', msg || '予期しないエラーが起きました。画面を再読み込みしてください', 'error', 8000);
+}
+function reportSyncError(err) {
+  const code = err && err.code ? String(err.code) : '';
+  if (code.indexOf('permission-denied') >= 0) notifyOnce('sync', '共有データに書き込めません。Firebase のルール設定を確認してください（この端末には保存されています）', 'error', 30000);
+  else notifyOnce('sync', '共有サーバーとの通信でエラーが起きました。端末のデータは保存されています', 'error', 30000);
+}
+window.addEventListener('error', e => { if (e && e.error) reportError(e.error); });
+window.addEventListener('unhandledrejection', e => {
+  const r = e && e.reason;
+  if (r && (r.name === 'FirebaseError' || /firestore|permission-denied|unavailable/i.test(String(r.code || '')))) reportSyncError(r);
+  else reportError(r);
+});
+const DEST = {
+  carry: { emoji: '🎒', label: '手で持っていく', short: '手持ち' },
+  ship:  { emoji: '📦', label: 'ホテルへ送る', short: '送る' }
+};
+
+// 一般的な旅行の持ち物（[名前, 運び方, メモ]）
+const DEFAULT_ITEMS = [
+  ['財布・現金・カード', 'carry', ''],
+  ['スマホ', 'carry', ''],
+  ['スマホの充電器', 'carry', ''],
+  ['モバイルバッテリー', 'carry', '飛行機では預けず手荷物に'],
+  ['身分証明書', 'carry', '免許証・マイナンバーカードなど'],
+  ['健康保険証', 'carry', ''],
+  ['チケット・予約確認書', 'carry', '交通機関・宿・観光施設'],
+  ['常備薬', 'carry', ''],
+  ['家の鍵', 'carry', ''],
+  ['眼鏡・コンタクト', 'carry', ''],
+  ['ハンカチ・ティッシュ', 'carry', ''],
+  ['マスク', 'carry', ''],
+  ['イヤホン', 'carry', ''],
+  ['折りたたみ傘', 'carry', ''],
+  ['エコバッグ', 'carry', ''],
+  ['着替え', 'ship', '日数分'],
+  ['下着・靴下', 'ship', '日数分'],
+  ['パジャマ', 'ship', ''],
+  ['洗面用具', 'ship', '歯ブラシ・歯磨き粉など'],
+  ['スキンケア・化粧品', 'ship', ''],
+  ['ヘアケア用品', 'ship', '整髪料・ヘアブラシなど'],
+  ['上着・防寒着', 'ship', ''],
+  ['予備の靴・サンダル', 'ship', ''],
+  ['タオル', 'ship', '宿にない場合'],
+  ['洗濯用品', 'ship', '長期の旅行向け'],
+  ['お土産用の袋', 'ship', ''],
+  // 👶 1歳児向け
+  ['👶 母子手帳', 'carry', ''],
+  ['👶 子どもの保険証・医療証', 'carry', '乳幼児医療証など'],
+  ['👶 おむつ（移動中の分）', 'carry', '予備を入れて多めに'],
+  ['👶 おしりふき', 'carry', ''],
+  ['👶 おむつ替えシート・汚物用の袋', 'carry', ''],
+  ['👶 着替え（予備1セット）', 'carry', '吐き戻し・汚れ対策'],
+  ['👶 飲み物（マグ・ストロー）', 'carry', ''],
+  ['👶 おやつ', 'carry', '移動中のぐずり対策'],
+  ['👶 食事（移動中の分）', 'carry', 'パウチ・おにぎりなど'],
+  ['👶 抱っこ紐', 'carry', ''],
+  ['👶 ベビーカー', 'carry', '乗り物での扱いを事前確認'],
+  ['👶 おもちゃ・絵本', 'carry', '移動中用'],
+  ['👶 お気に入りのぬいぐるみ・タオル', 'carry', '寝かしつけ用'],
+  ['👶 子ども用の薬・体温計', 'carry', '解熱剤・かかりつけの処方薬'],
+  ['👶 ガーゼ・ハンドタオル', 'carry', ''],
+  ['👶 おむつ（宿泊中の分）', 'ship', '日数×8枚＋予備'],
+  ['👶 おしりふき（予備）', 'ship', ''],
+  ['👶 子どもの着替え', 'ship', '日数分＋予備'],
+  ['👶 子どものパジャマ', 'ship', ''],
+  ['👶 スタイ・食事用エプロン', 'ship', ''],
+  ['👶 子ども用食器・スプーン・フォーク', 'ship', ''],
+  ['👶 食事（宿泊中の分）', 'ship', 'レトルト・パウチなど'],
+  ['👶 子ども用歯ブラシ', 'ship', ''],
+  ['👶 お風呂用品・保湿剤', 'ship', 'ベビーソープ・ローション'],
+  ['👶 子どもの帽子・上着', 'ship', ''],
+  ['👶 ベッドガード', 'ship', '宿に貸出があるか確認']
+];
+function makeDefaultItems(existingNames) {
+  const base = Date.now();
+  return DEFAULT_ITEMS
+    .filter(s => !existingNames.includes(s[0]))
+    .map((s, idx) => ({ id: base + idx, name: s[0], dest: s[1], memo: s[2], done: false }));
+}
+const emptyInfo = () => ({ trip: '', depart: '', stay: '', addr: '', sendDate: '', arrive: '', tracking: '', memo: '' });
+const emptyPlan = () => ({ days: [], rows: [], seeded: false });
+const defaultData = () => ({ items: makeDefaultItems([]), info: emptyInfo(), plan: emptyPlan(), passes: [] });
+
+function loadData() {
+  const raw = store.get(KEY);
+  if (raw === null) return defaultData();
+  const d = parseJSON(raw, null);
+  if (!d || typeof d !== 'object' || Array.isArray(d)) {
+    if (raw) store.set(KEY + '_corrupt', String(raw).slice(0, 400000)); // 壊れたデータは控えとして残す
+    bootNotices.push('保存データを読み込めなかったため、初期の状態から始めます。');
+    return defaultData();
+  }
+  return { items: normItems(d.items), info: normInfo(d.info), plan: normPlan(d.plan) || emptyPlan(), passes: normPasses(d.passes) };
+}
+let state = loadData();
+function save() {
+  let ok = false;
+  try { ok = store.set(KEY, JSON.stringify(state)); } catch (e) { ok = false; }
+  if (!ok) notifyOnce('save', SAVE_FAIL, 'error', 30000);
+  try { schedulePush(); } catch (e) { reportError(e); }
+}
+
+const haptic = (type = 'light') => { try { navigator.vibrate && navigator.vibrate(type === 'heavy' ? 30 : 10); } catch (e) {} };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let currentSegment = 'all';
+let searchQuery = '';
+let searchOpen = false;
+let popId = null;
+let editingId = null;
+let pickedDest = 'carry';
+let currentPage = 'list';
+let editMode = false;
+const selected = new Set();
+const scrollPos = {};
+let swipedAt = 0;
+
+/* ---------- トースト ---------- */
+function toastBox() {
+  let box = $('toast-box');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'toast-box';
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-live', 'polite');
+    document.body.appendChild(box);
+  }
+  return box;
+}
+function showToast(message, type = 'success', action) {
+  const colors = { success: '#16a34a', error: '#dc2626', info: '#2563eb' };
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  if (!colors[type]) type = 'info';
+  const text = String(message === undefined || message === null ? '' : message);
+  const box = toastBox();
+  box.style.bottom = (editMode && currentPage === 'list') ? 'calc(136px + env(safe-area-inset-bottom))' : 'calc(76px + env(safe-area-inset-bottom))';
+  if (!action && Array.prototype.some.call(box.children, c => c.dataset.msg === text)) return; // 同じ文言は重ねない
+  while (box.children.length >= 3) box.firstChild.remove();                                      // 多すぎるときは古いものから消す
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.dataset.msg = text;
+  t.style.background = colors[type];
+  const label = document.createElement('span');
+  label.className = 'toast-msg';
+  label.innerHTML = '<b>' + icons[type] + '</b> ' + esc(text);
+  t.appendChild(label);
+  const close = () => { t.style.opacity = '0'; setTimeout(() => t.remove(), 250); };
+  if (action) {
+    const b = document.createElement('button');
+    b.textContent = action.label;
+    b.style.cssText = 'margin-left:12px;padding:6px 12px;border:none;border-radius:14px;background:rgba(255,255,255,0.28);color:#fff;font-size:14px;font-weight:700;flex:none;';
+    b.addEventListener('click', () => { t.remove(); try { action.fn(); } catch (e) { reportError(e); } });
+    t.appendChild(b);
+  }
+  box.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity = '1'; });
+  setTimeout(close, action ? 5500 : (type === 'error' ? 5000 : 2200));
+}
+
+/* ---------- 確認ダイアログ ---------- */
+function showConfirm({ title, message, label = '削除する', onOk }) {
+  $('confirm-title').textContent = title;
+  $('confirm-msg').textContent = message;
+  $('confirm-ok').textContent = label;
+  $('confirm-ok').onclick = () => { closeConfirm(); onOk(); haptic('heavy'); };
+  $('confirm-dialog').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeConfirm() {
+  $('confirm-dialog').style.display = 'none';
+  document.body.style.overflow = ['modal', 'row-modal', 'day-modal', 'pass-modal'].some(id => $(id) && $(id).style.display === 'flex') ? 'hidden' : '';
+}
+
+/* ---------- 追加・編集モーダル ---------- */
+function setDestPick(dest) {
+  pickedDest = dest;
+  document.querySelectorAll('.dest-opt').forEach(b => b.classList.toggle('sel', b.dataset.dest === dest));
+}
+function clearErr() {
+  const input = $('f-name');
+  input.classList.remove('err');
+  const e = input.parentElement.querySelector('.ferr');
+  if (e) e.remove();
+}
+function openModal(id) {
+  editingId = id || null;
+  clearErr();
+  const item = id ? state.items.find(i => i.id === id) : null;
+  $('modal-title').textContent = item ? '持ち物を編集' : '持ち物を追加';
+  $('f-name').value = item ? item.name : '';
+  $('f-memo').value = item ? (item.memo || '') : '';
+  setDestPick(item ? item.dest : (currentSegment === 'ship' ? 'ship' : 'carry'));
+  $('btn-delete').style.display = item ? 'block' : 'none';
+  $('btn-save-next').style.display = item ? 'none' : 'block';
+  $('modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  if (!item) setTimeout(() => $('f-name').focus(), 280);
+}
+function closeModal() {
+  $('modal').style.display = 'none';
+  document.body.style.overflow = '';
+  editingId = null;
+}
+function saveItem(mode) {
+  clearErr();
+  const name = cleanText($('f-name').value, 40);
+  if (!name) { fieldErr($('f-name'), '持ち物の名前を入力してください'); return; }
+  const memo = cleanText($('f-memo').value, 60);
+  const dest = pickedDest === 'ship' ? 'ship' : 'carry';
+  if (editingId) {
+    if (!state.items.some(i => i.id === editingId)) { closeModal(); render(); showToast('この持ち物は、ほかの端末で削除されました', 'info'); return; }
+    state.items = state.items.map(i => i.id === editingId ? Object.assign({}, i, { name, memo, dest }) : i);
+    save(); closeModal(); render(); showToast('保存しました');
+  } else {
+    if (state.items.length >= MAX_ITEMS) { showToast('持ち物は' + MAX_ITEMS + '件までです', 'error'); return; }
+    let id = Date.now() + Math.floor(Math.random() * 1000);
+    while (state.items.some(i => i.id === id)) id++;
+    state.items.push({ id, name, memo, dest, done: false });
+    save(); render();
+    if (mode === 'next') {
+      $('f-name').value = '';
+      $('f-memo').value = '';
+      clearErr();
+      showToast(DEST[dest].emoji + ' ' + DEST[dest].short + 'に追加しました。続けてどうぞ');
+      $('f-name').focus();
+    } else {
+      closeModal();
+      showToast(DEST[dest].emoji + ' ' + DEST[dest].short + 'に追加しました');
+    }
+  }
+  haptic();
+}
+
+/* ---------- 操作（状態を変えて、画面は render() に任せる） ---------- */
+function toggleDone(id) {
+  const it = state.items.find(i => i.id === id);
+  if (!it) return;
+  it.done = !it.done;
+  popId = id;
+  save(); render(); haptic();
+}
+function removeItems(ids) {
+  const set = new Set(ids);
+  const removed = [];
+  state.items.forEach((it, idx) => { if (set.has(it.id)) removed.push({ it, idx }); });
+  if (!removed.length) return;
+  state.items = state.items.filter(i => !set.has(i.id));
+  save(); render();
+  const msg = removed.length === 1 ? '「' + removed[0].it.name + '」を削除しました' : removed.length + '件を削除しました';
+  showToast(msg, 'info', { label: '元に戻す', fn: () => restoreItems(removed) });
+}
+function restoreItems(removed) {
+  removed.slice().sort((a, b) => a.idx - b.idx).forEach(r => {
+    state.items.splice(Math.min(r.idx, state.items.length), 0, r.it);
+  });
+  save(); render(); showToast('元に戻しました');
+}
+
+/* ---------- 一般的な持ち物の追加 ---------- */
+function addSamples() {
+  const added = makeDefaultItems(state.items.map(i => i.name));
+  if (added.length === 0) { showToast('一般的な持ち物はすべて入っています', 'info'); return; }
+  state.items = state.items.concat(added);
+  save(); render(); showToast(added.length + '件の持ち物を追加しました');
+}
+
+/* ---------- 整理モード（まとめて削除） ---------- */
+function setEditMode(on) {
+  editMode = !!on;
+  selected.clear();
+  render();
+}
+function renderSelBar() {
+  const n = selected.size;
+  $('sel-del').textContent = '削除（' + n + '）';
+  $('sel-del').disabled = n === 0;
+  const vis = getFiltered();
+  const allSel = vis.length > 0 && vis.every(i => selected.has(i.id));
+  $('sel-all').textContent = allSel ? '選択解除' : 'すべて選択';
+}
+
+/* ---------- バックアップ ---------- */
+function sanitizeData(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.items)) throw new Error('invalid');
+  return { items: normItems(d.items), info: normInfo(d.info), plan: normPlan(d.plan), passes: d.passes === undefined ? undefined : normPasses(d.passes) };
+}
+function exportData() {
+  try {
+    const payload = { app: 'travelPacking', version: 1, exportedAt: new Date().toISOString(), items: state.items, info: state.info, plan: state.plan, passes: state.passes };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const ymd = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    a.href = url;
+    a.download = 'travel-packing-backup-' + ymd + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast('バックアップを書き出しました');
+  } catch (e) {
+    showToast('書き出せませんでした', 'error');
+  }
+}
+
+/* ---------- 描画 ---------- */
+function itemHTML(i) {
+  const d = DEST[i.dest] || DEST.carry;
+  const other = i.dest === 'carry' ? DEST.ship : DEST.carry;
+  const isSel = editMode && selected.has(i.id);
+  const on = editMode ? isSel : !!i.done;
+  const chkCls = 'chk' + (editMode ? (isSel ? ' sel' : '') : (i.done ? ' on' : '')) + (!editMode && i.done && popId === i.id ? ' pop' : '');
+  return '<div class="item-wrap" data-id="' + i.id + '"><div class="swipe-bg">🗑 削除</div>' +
+    '<div class="item ' + (i.dest === 'ship' ? 'ship' : 'carry') + (!editMode && i.done ? ' done' : '') + '">' +
+    '<button class="item-main tappable" data-act="' + (editMode ? 'select' : 'done') + '" data-id="' + i.id + '" aria-pressed="' + on + '">' +
+      '<span class="' + chkCls + '">' + (on ? '✓' : '') + '</span>' +
+      '<span class="item-text"><span class="item-name">' + esc(i.name) + '</span>' +
+      (i.memo ? '<span class="item-memo">' + esc(i.memo) + '</span>' : '') + '</span>' +
+    '</button>' +
+    '<button class="edit-btn tappable" data-act="edit" data-id="' + i.id + '" aria-label="編集">✎</button>' +
+    '</div></div>';
+}
+
+function renderProgress() {
+  const calc = dest => {
+    const arr = state.items.filter(i => i.dest === dest);
+    return { total: arr.length, done: arr.filter(i => i.done).length };
+  };
+  const c = calc('carry'), s = calc('ship');
+  const card = (cls, ttl, v) =>
+    '<div class="pcard ' + cls + '"><div class="ttl">' + ttl + '</div>' +
+    '<div class="num">' + v.done + '<small> / ' + v.total + '</small></div>' +
+    '<div class="bar"><div style="width:' + (v.total ? Math.round(v.done / v.total * 100) : 0) + '%"></div></div></div>';
+  $('progress').innerHTML = '<div class="progress-grid">' +
+    card('carry', '🎒 手で持っていく', c) + card('ship', '📦 ホテルへ送る', s) + '</div>';
+}
+
+function getFiltered() {
+  const q = searchQuery.toLowerCase();
+  return state.items.filter(i => {
+    if (currentSegment !== 'all' && i.dest !== currentSegment) return false;
+    if (q && !(i.name.toLowerCase().includes(q) || (i.memo || '').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderList() {
+  const filtered = getFiltered();
+
+  if (state.items.length === 0) {
+    $('list').innerHTML = '<div class="empty"><div class="ic">🧳</div>' +
+      '<p class="t">まだ持ち物がありません</p>' +
+      '<p>右上の＋ボタンから追加しましょう。<br>「手で持っていく物」と「ホテルへ送る物」を分けて管理できます。</p>' +
+      '<div style="margin-top:24px;"><button id="btn-sample" class="btn secondary tappable">一般的な持ち物を入れる</button></div></div>';
+    return;
+  }
+  if (filtered.length === 0) {
+    $('list').innerHTML = '<div class="empty"><div class="ic">🔍</div><p class="t">該当する持ち物がありません</p></div>';
+    return;
+  }
+
+  let html = '';
+  const groups = currentSegment === 'all' ? ['carry', 'ship'] : [currentSegment];
+  groups.forEach(g => {
+    const arr = filtered.filter(i => i.dest === g);
+    if (arr.length === 0) return;
+    if (currentSegment === 'all') {
+      html += '<div class="sec-title">' + DEST[g].emoji + ' ' + DEST[g].label + '（' + arr.length + '）</div>';
+    }
+    html += arr.map(itemHTML).join('');
+  });
+  $('list').innerHTML = html;
+}
+
+function renderHeader() {
+  const t = (state.info.trip || '').trim();
+  $('hd-title').textContent = t || '東京旅行 11/1〜3';
+  const el = $('hd-days');
+  if (state.info.depart) {
+    const dep = new Date(state.info.depart + 'T00:00:00');
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const diff = Math.round((dep - now) / 86400000);
+    if (!isNaN(diff)) {
+      el.style.display = 'inline-block';
+      el.textContent = diff > 0 ? 'あと' + diff + '日' : diff === 0 ? '今日出発！' : '出発済み';
+      return;
+    }
+  }
+  el.style.display = 'none';
+}
+
+function renderBadge() {
+  const total = state.items.length, done = state.items.filter(i => i.done).length;
+  const b = $('badge-list');
+  b.style.display = total > 0 && done < total ? 'block' : 'none';
+  b.textContent = done + '/' + total;
+}
+
+function renderBanner() {
+  const el = $('banner');
+  el.innerHTML = '';
+  if (!state.info.sendDate) return;
+  const remain = state.items.filter(i => i.dest === 'ship' && !i.done).length;
+  if (remain === 0) return;
+  const d = new Date(state.info.sendDate + 'T00:00:00');
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const diff = Math.round((d - now) / 86400000);
+  if (isNaN(diff) || diff > 1) return;
+  const msg = diff < 0 ? '発送日を過ぎています！' : diff === 0 ? '今日が発送日です！' : '明日が発送日です';
+  el.innerHTML = '<div class="banner' + (diff <= 0 ? ' urgent' : '') + '"><span class="e">📦</span><div>' + msg +
+    '<small>送る荷物がまだ' + remain + '個、未チェックです</small></div></div>';
+}
+
+function buildShipText() {
+  const info = state.info;
+  const ship = state.items.filter(i => i.dest === 'ship');
+  const lines = ['【ホテルへ送る荷物】'];
+  if (info.trip) lines.push('旅行：' + info.trip);
+  if (info.stay) lines.push('宿泊先：' + info.stay);
+  if (info.addr) lines.push('住所：' + info.addr);
+  if (info.sendDate) lines.push('発送日：' + info.sendDate);
+  if (info.arrive) lines.push('到着予定：' + info.arrive);
+  if (info.tracking) lines.push('追跡番号：' + info.tracking);
+  lines.push('');
+  ship.forEach(i => lines.push((i.done ? '☑ ' : '☐ ') + i.name + (i.memo ? '（' + i.memo + '）' : '')));
+  if (info.memo) { lines.push(''); lines.push(info.memo); }
+  return lines.join('\n');
+}
+
+// 画面の見た目はすべて state と currentPage / editMode などから導く（一方向）
+function renderChrome() {
+  document.querySelectorAll('.page').forEach(p => { p.style.display = p.id === 'page-' + currentPage ? 'block' : 'none'; });
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === currentPage));
+  $('hd-list-tools').style.display = currentPage === 'list' ? 'flex' : 'none';
+  const em = editMode && currentPage === 'list';
+  document.body.classList.toggle('editing', em);
+  $('btn-edit').textContent = em ? '完了' : '削除';
+  $('btn-edit').classList.toggle('on', em);
+  $('btn-add').style.display = em ? 'none' : '';
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.seg === currentSegment));
+  $('search-wrap').style.display = searchOpen ? 'block' : 'none';
+  $('btn-search').classList.toggle('on', searchOpen);
+  if (!searchOpen && $('search-input').value) $('search-input').value = '';
+}
+function render() {
+  try {
+    renderChrome();
+    renderHeader();
+    renderBadge();
+    if (currentPage === 'plan') renderPlan();
+    else if (currentPage === 'pass') renderPasses();
+    else if (currentPage === 'list') {
+      renderBanner(); renderProgress(); renderList();
+      popId = null;
+      if (editMode) renderSelBar();
+    } else if (currentPage === 'info') { fillInfoForm(); refreshDot(); }
+  } catch (e) { reportError(e, '画面の表示でエラーが起きました。再読み込みしてください'); }
+}
+
+function showPage(page) {
+  if (!$('page-' + page)) return;
+  scrollPos[currentPage] = window.scrollY;
+  if (page !== 'list') { editMode = false; selected.clear(); }
+  currentPage = page;
+  render();
+  window.scrollTo(0, scrollPos[page] || 0);
+}
+
+/* ---------- 送付情報フォーム ---------- */
+function fillInfoForm() {
+  document.querySelectorAll('[data-key]').forEach(el => { if (el !== document.activeElement) el.value = state.info[el.dataset.key] || ''; });
+}
+function initInfoForm() {
+  fillInfoForm();
+  document.querySelectorAll('[data-key]').forEach(el => {
+    const key = el.dataset.key;
+    if (INFO_LIMIT[key] && el.type !== 'date') el.maxLength = INFO_LIMIT[key];
+    el.addEventListener('input', () => {
+      const v = clip(String(el.value).replace(STRIP, ''), INFO_LIMIT[key] || 100); // 入力中は切り詰めだけ（空白の整理はしない）
+      if (v !== el.value) el.value = v;
+      state.info[key] = (key === 'depart' || key === 'sendDate' || key === 'arrive') ? normInfoVal(key, v) : v;
+      save(); render();
+    });
+    el.addEventListener('change', () => {
+      const v = normInfoVal(key, el.value);
+      el.value = v; state.info[key] = v;
+      save(); render();
+    });
+  });
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const val = state.info[btn.dataset.copy] || '';
+      if (!val) { showToast('コピーする内容がありません', 'error'); return; }
+      try {
+        await navigator.clipboard.writeText(val);
+        showToast('コピーしました');
+      } catch (e) {
+        const input = document.querySelector('[data-key="' + btn.dataset.copy + '"]');
+        input.focus(); input.select();
+        showToast('長押ししてコピーしてください', 'info');
+      }
+      haptic();
+    });
+  });
+}
+
+/* ---------- イベント：リスト ---------- */
+$('list').addEventListener('click', e => {
+  if (Date.now() - swipedAt < 350) return; // スワイプ直後の誤タップを無視
+  const sample = e.target.closest('#btn-sample');
+  if (sample) { addSamples(); return; }
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const id = Number(t.dataset.id);
+  const act = t.dataset.act;
+  if (act === 'done') toggleDone(id);
+  else if (act === 'edit') openModal(id);
+  else if (act === 'select') {
+    if (selected.has(id)) selected.delete(id); else selected.add(id);
+    haptic();
+    renderList(); renderSelBar();
+  }
+});
+
+// 左スワイプで削除（元に戻す付き）
+let sw = null;
+$('list').addEventListener('touchstart', e => {
+  if (editMode) return;
+  const wrap = e.target.closest('.item-wrap');
+  if (!wrap) return;
+  const t = e.touches[0];
+  sw = { wrap, item: wrap.querySelector('.item'), x: t.clientX, y: t.clientY, dx: 0, lock: null };
+}, { passive: true });
+$('list').addEventListener('touchmove', e => {
+  if (!sw) return;
+  const t = e.touches[0];
+  const dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+  if (sw.lock === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+    sw.lock = Math.abs(dx) > Math.abs(dy) * 1.5 ? 'h' : 'v';
+  }
+  if (sw.lock !== 'h') return;
+  sw.dx = Math.min(0, Math.max(dx, -140));
+  sw.item.style.transition = 'none';
+  sw.item.style.transform = 'translateX(' + sw.dx + 'px)';
+  sw.wrap.classList.add('swiping');
+}, { passive: true });
+function endSwipe(cancel) {
+  if (!sw) return;
+  const s = sw; sw = null;
+  s.item.style.transition = '';
+  if (s.lock === 'h') swipedAt = Date.now();
+  if (!cancel && s.lock === 'h' && s.dx < -80) {
+    s.item.style.transform = 'translateX(-110%)';
+    haptic('heavy');
+    const id = Number(s.wrap.dataset.id);
+    setTimeout(() => removeItems([id]), 180);
+  } else {
+    s.item.style.transform = '';
+    s.wrap.classList.remove('swiping');
+  }
+}
+$('list').addEventListener('touchend', () => endSwipe(false));
+$('list').addEventListener('touchcancel', () => endSwipe(true));
+
+$('seg').addEventListener('click', e => {
+  const b = e.target.closest('.seg-btn');
+  if (!b) return;
+  currentSegment = b.dataset.seg;
+  render();
+});
+
+/* ---------- イベント：検索・整理 ---------- */
+let searchTimer = null;
+$('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const v = e.target.value;
+  searchTimer = setTimeout(() => { searchQuery = cleanText(v, 40); render(); }, 200);
+});
+$('search-input').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('btn-search').addEventListener('click', () => {
+  searchOpen = !searchOpen;
+  if (!searchOpen) searchQuery = '';
+  render();
+  if (searchOpen) $('search-input').focus();
+});
+$('btn-edit').addEventListener('click', () => { setEditMode(!editMode); haptic(); });
+$('sel-all').addEventListener('click', () => {
+  const vis = getFiltered();
+  const allSel = vis.length > 0 && vis.every(i => selected.has(i.id));
+  vis.forEach(i => { if (allSel) selected.delete(i.id); else selected.add(i.id); });
+  render(); haptic();
+});
+$('sel-del').addEventListener('click', () => {
+  const ids = Array.from(selected);
+  if (!ids.length) return;
+  showConfirm({
+    title: ids.length + '件の持ち物を削除しますか？',
+    message: '共有している場合は、共有相手の画面からも消えます。削除後、数秒間は「元に戻す」で取り消せます。',
+    label: '削除する',
+    onOk: () => { selected.clear(); removeItems(ids); }
+  });
+});
+
+/* ---------- イベント：ナビ・モーダル ---------- */
+document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
+$('btn-add').addEventListener('click', () => { openModal(); haptic(); });
+
+document.querySelectorAll('.dest-opt').forEach(b => b.addEventListener('click', () => { setDestPick(b.dataset.dest); haptic(); }));
+$('btn-save').addEventListener('click', () => saveItem('close'));
+$('btn-save-next').addEventListener('click', () => saveItem('next'));
+$('btn-cancel').addEventListener('click', closeModal);
+$('modal-bg').addEventListener('click', closeModal);
+$('f-name').addEventListener('input', clearErr);
+$('f-name').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); $('f-memo').focus(); } });
+$('f-memo').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); saveItem('close'); } });
+$('btn-delete').addEventListener('click', () => {
+  const item = state.items.find(i => i.id === editingId);
+  if (!item) return;
+  const id = item.id;
+  showConfirm({
+    title: '「' + item.name + '」を削除しますか？',
+    message: '共有している場合は、共有相手の画面からも消えます。削除後、数秒間は「元に戻す」で取り消せます。',
+    onOk: () => { closeModal(); removeItems([id]); }
+  });
+});
+
+$('confirm-bg').addEventListener('click', closeConfirm);
+$('confirm-cancel').addEventListener('click', closeConfirm);
+
+/* ---------- イベント：送付情報ページ ---------- */
+$('btn-copy-ship').addEventListener('click', async () => {
+  if (!state.items.some(i => i.dest === 'ship')) { showToast('送る荷物がまだありません', 'info'); return; }
+  try {
+    await navigator.clipboard.writeText(buildShipText());
+    showToast('送る荷物リストをコピーしました');
+  } catch (e) {
+    showToast('コピーできませんでした', 'error');
+  }
+  haptic();
+});
+$('btn-defaults').addEventListener('click', () => { addSamples(); haptic(); });
+$('btn-uncheck').addEventListener('click', () => {
+  if (!state.items.some(i => i.done)) { showToast('チェック済みの項目はありません', 'info'); return; }
+  state.items = state.items.map(i => Object.assign({}, i, { done: false }));
+  save(); render(); showToast('チェックをすべて外しました'); haptic();
+});
+$('btn-clear').addEventListener('click', () => {
+  if (state.items.length === 0) { showToast('削除する持ち物がありません', 'info'); return; }
+  const snapshot = state.items.slice();
+  showConfirm({
+    title: '持ち物をすべて削除しますか？',
+    message: state.items.length + '件の持ち物が削除されます。共有している場合は、共有相手の画面からも消えます。',
+    label: 'すべて削除する',
+    onOk: () => {
+      state.items = []; save(); render();
+      showToast('すべて削除しました', 'info', { label: '元に戻す', fn: () => { state.items = snapshot; save(); render(); showToast('元に戻しました'); } });
+    }
+  });
+});
+$('btn-export').addEventListener('click', exportData);
+$('btn-import').addEventListener('click', () => $('import-file').click());
+$('import-file').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (f.size > 2 * 1024 * 1024) { showToast('ファイルが大きすぎます（2MBまで）', 'error'); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    let clean;
+    try { clean = sanitizeData(JSON.parse(r.result)); }
+    catch (err) { showToast('読み込めないファイルです。このアプリで書き出したバックアップを選んでください', 'error'); return; }
+    showConfirm({
+      title: 'バックアップを読み込みますか？',
+      message: '現在のデータは置き換えられます（持ち物 ' + clean.items.length + '件）。共有している場合は、共有相手の画面も同じ内容に置き換わります。',
+      label: '読み込む',
+      onOk: () => { const keep = state.plan, keepP = state.passes; state = clean; if (!state.plan) state.plan = keep; if (!state.passes) state.passes = keepP; ensureSeed(); save(); fillInfoForm(); render(); showToast('読み込みました'); }
+    });
+  };
+  r.onerror = () => showToast('読み込めませんでした', 'error');
+  r.readAsText(f);
+});
+
+/* ---------- 日程 ---------- */
+// tag: fix=確認済み / est=推定 / ask=要確認
+const PLAN = [
+  { id: 'pre', title: '事前にやること', sub: '', rows: [
+    { id: 'p1', t: '10/18', title: '11/1 の駐車場を予約', note: 'タイムズのB 津雲台5丁目駐車場（1日800円・予約は14日前から）。単独1台・高さ制限あり・幅190cm推奨', tag: 'fix' },
+    { id: 'p2', t: '10/20', title: '11/3の出庫日まで予約できているか確認', note: '予約の終了日が11/3になっているか。足りなければ延長か追加で予約', tag: 'ask' },
+    { id: 'p3', t: '10/29', title: 'JALにチャイルドシートの連絡（使う場合のみ）', note: '利用は座席予約が必要。搭乗3日前までに連絡', tag: 'fix' },
+    { id: 'p4', t: '11/1まで', title: 'バスの手荷物ルールを確認', note: '1人2個まで。ベビーカーが数に入るか、乗車時に係員へ確認', tag: 'ask' }
+  ]},
+  { id: 'd1', title: '11/1（日） 往路', sub: '伊丹→羽田→ホテル', rows: [
+    { id: 'a1', t: '8:35', title: '自宅を出発', note: '理想 8:35 / 目標 8:45 / 必須 8:50。運転は30分見込み', tag: 'est' },
+    { id: 'a2', t: '9:20まで', title: 'Times B 津雲台5丁目に駐車 → 山田駅へ徒歩7分', note: '', tag: 'est' },
+    { id: 'a3', t: '9:22', title: '山田駅からモノレール', note: '理想 9:22 / 目標 9:32 / 必須 9:42。伊丹空港まで約15分。⚠ 確認: 9:42を逃した場合の次の電車', tag: 'ask' },
+    { id: 'a4', t: '約10:00', title: '伊丹空港に到着', note: '', tag: 'est' },
+    { id: 'a5', t: '11:00まで', title: '手荷物を預ける・ベビーカーを預ける', note: 'ベビーカーは「特別ご案内カウンター」（カウンター2と4の間）で無料。⚠ 確認: 伊丹の手荷物の締切が出発30分前かどうか', tag: 'ask' },
+    { id: 'a6', t: '11:20', title: '搭乗口へ', note: '搭乗口の締切は出発10分前。1歳は膝上無料、先行搭乗あり', tag: 'fix' },
+    { id: 'a7', t: '11:30', title: 'JAL 伊丹 → 羽田', note: '飛行時間 約65分', tag: 'fix' },
+    { id: 'a8', t: '12:40', title: '羽田空港に到着', note: '⚠ 確認: ベビーカーの返却場所（手荷物受取所が一般的）', tag: 'ask' },
+    { id: 'a9', t: '13:15', title: '昼食: 銀座ライオン 羽田空港店（予約済み）', note: '第1ターミナル1F・南ウイング到着出口1前 / 電話 050-5485-2449', tag: 'fix' },
+    { id: 'a10', t: '14:00', title: '店を出る → 時間があればキッズスペース（14:25まで）', note: '一般エリア2F（北ウイング奥）。⚠ 確認: 対象年齢と、1歳向けの安全性', tag: 'ask' },
+    { id: 'a11', t: '14:45', title: 'リムジンバス（第1ターミナル5番乗り場）', note: '予約済み。ベイサイドホテルエリア行き', tag: 'fix' },
+    { id: 'a12', t: '15:32', title: 'ベイサイドホテルエリア着', note: '', tag: 'fix' },
+    { id: 'a13', t: '15:36', title: '1955 Tokyo Bay にチェックイン', note: 'バス停から徒歩4分。チェックイン 15:00〜25:00', tag: 'fix' }
+  ]},
+  { id: 'd3', title: '11/3（火・祝） 復路', sub: 'ホテル→DisneySea→羽田→伊丹', rows: [
+    { id: 'b1', t: '10:00', title: 'ホテルをチェックアウト', note: '公式は11:00。早めの設定', tag: 'fix' },
+    { id: 'b2', t: '10:00から', title: '無料シャトルで東京ディズニーリゾートへ', note: '所要は約30分。⚠ 確認: 発車時刻', tag: 'ask' },
+    { id: 'b3', t: '約10:30', title: 'DisneySea 到着 → 荷物をロッカーへ', note: '入口付近。S 400〜500円からXXL 800〜1,500円まで。⚠ 確認: スーツケースが入るか', tag: 'ask' },
+    { id: 'b4', t: '14:50まで', title: 'パークで過ごす（ベビーカー使用）', note: '11/3は祝日。⚠ 確認: 混雑と開園時間', tag: 'ask' },
+    { id: 'b5', t: '14:50', title: 'ロッカーの荷物を受け取りバス停へ', note: '15:00までには動き出す。バス停までの所要は推定', tag: 'est' },
+    { id: 'b6', t: '15:35', title: 'リムジンバス DisneySea → 羽田第1（予約済み）', note: '大人2・小人1 計3,250円。手荷物は1人2個まで', tag: 'fix' },
+    { id: 'b7', t: '16:30', title: '羽田第1ターミナル着', note: '手荷物の締切17:35まで余裕65分', tag: 'fix' },
+    { id: 'b8', t: '17:35まで', title: '手荷物・ベビーカーを預ける', note: 'ベビーカーは特別ご案内カウンター（南5・北15）。締切は出発30分前', tag: 'fix' },
+    { id: 'b9', t: '17:45', title: '保安検査（締切は出発20分前）', note: '', tag: 'fix' },
+    { id: 'b10', t: '17:55', title: '搭乗口へ（締切は出発10分前）', note: '', tag: 'fix' },
+    { id: 'b11', t: '18:05', title: 'JAL 羽田 → 伊丹', note: '', tag: 'fix' },
+    { id: 'b12', t: '19:15', title: '伊丹空港に到着', note: '', tag: 'fix' },
+    { id: 'b13', t: '約19:35', title: '手荷物・ベビーカーを受け取り', note: '', tag: 'est' },
+    { id: 'b14', t: '約19:50', title: 'モノレールで山田駅へ', note: '⚠ 確認: 祝日ダイヤ', tag: 'ask' },
+    { id: 'b15', t: '約20:05', title: '山田駅着 → 駐車場まで徒歩7分', note: '', tag: 'est' },
+    { id: 'b16', t: '約20:45', title: '帰宅（運転30分）', note: '', tag: 'est' }
+  ]}
+];
+const MAP = q => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+const PLAN_EXTRA = {
+  a1: { dl: '必須 8:50' },
+  a2: { links: [{ l: '🗺 駐車場の地図', h: MAP('タイムズのB 津雲台5丁目駐車場') }] },
+  a3: { dl: '必須 9:42', links: [{ l: '🗺 山田駅', h: MAP('山田駅 大阪モノレール') }] },
+  a4: { links: [{ l: '🗺 伊丹空港', h: MAP('大阪国際空港 伊丹空港') }] },
+  a5: { dl: '締切 11:00' },
+  a9: { links: [{ l: '📞 電話する', h: 'tel:050-5485-2449' }, { l: '🗺 地図', h: MAP('銀座ライオン 羽田空港店') }] },
+  a11: { links: [{ l: '🚌 リムジンバス', h: 'https://www.limousinebus.co.jp/' }] },
+  a13: { links: [{ l: '🏨 公式ページ', h: 'https://hoshinoresorts.com/ja/hotels/1955tokyobay/' }, { l: '🗺 地図', h: MAP('1955 Tokyo Bay') }] },
+  b3: { links: [{ l: '🗺 東京ディズニーシー', h: MAP('東京ディズニーシー') }] },
+  b6: { links: [{ l: '🚌 リムジンバス', h: 'https://www.limousinebus.co.jp/' }] },
+  b7: { links: [{ l: '🗺 羽田第1ターミナル', h: MAP('羽田空港 第1ターミナル') }] },
+  b8: { dl: '締切 17:35' },
+  b9: { dl: '締切 17:45' },
+  b10: { dl: '締切 17:55' },
+  b15: { links: [{ l: '🗺 駐車場の地図', h: MAP('タイムズのB 津雲台5丁目駐車場') }] }
+};
+PLAN.forEach(d => d.rows.forEach(r => Object.assign(r, PLAN_EXTRA[r.id] || {})));
+const PLAN_KEY = 'travelPlanDone_v1';
+let planDone = normDone(parseJSON(store.get(PLAN_KEY), {}));
+function savePlanDone() {
+  let ok = false;
+  try { ok = store.set(PLAN_KEY, JSON.stringify(planDone)); } catch (e) { ok = false; }
+  if (!ok) notifyOnce('save', SAVE_FAIL, 'error', 30000);
+  try { schedulePush(); } catch (e) { reportError(e); }
+}
+const planOpen = new Set();
+const planFold = new Set();
+let planScrolled = false;
+(function () {
+  const t = new Date(), ymd = t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate();
+  if (ymd >= 20261101) planFold.add('pre');
+  if (ymd >= 20261103) planFold.add('d1');
+})();
+function planModel() {
+  const days = state.plan.days.slice().sort((x, y) => x.order - y.order);
+  return days.map(d => Object.assign({}, d, { rows: state.plan.rows.filter(r => r.day === d.id).sort((x, y) => x.order - y.order) }));
+}
+const FIXED_SEED = new Set(['a7', 'a9', 'a11', 'b6', 'b11']); // 予約済みで動かせない予定
+function seedPlan() {
+  const days = [], rows = [];
+  PLAN.forEach((d, di) => {
+    days.push({ id: d.id, title: d.title, sub: d.sub || '', order: (di + 1) * 1000 });
+    d.rows.forEach((r, ri) => rows.push({ id: r.id, day: d.id, order: (ri + 1) * 10, t: r.t, title: r.title, note: r.note || '', dl: r.dl || '', fx: FIXED_SEED.has(r.id) ? true : undefined, links: (r.links || []).map(k => ({ l: k.l, h: k.h })) }));
+  });
+  state.plan = { days, rows, seeded: true };
+}
+function ensureSeed() {
+  if (!state.plan) state.plan = emptyPlan();
+  if (!state.plan.seeded) {
+    if (state.plan.days.length === 0 && state.plan.rows.length === 0) seedPlan(); else state.plan.seeded = true;
+  }
+  // 固定フラグが未設定の初期の予定には、予約済みの印を付ける（一度設定したら変更しない）
+  state.plan.rows.forEach(r => { if (r.fx === undefined && FIXED_SEED.has(r.id)) r.fx = true; });
+}
+function computeNext() {
+  for (const d of planModel()) {
+    if (d.id === 'pre') continue;
+    const n = d.rows.filter(r => planDone[r.id]).length;
+    if (n > 0 && n < d.rows.length) return d.rows.find(r => !planDone[r.id]).id;
+  }
+  return null;
+}
+function fmtT(t) {
+  return esc(t).replace(/^約/, '<small>約</small>').replace(/(まで|から)$/, '<small class="sfx">$1</small>');
+}
+function renderPlan() {
+  let html = '';
+  const nextId = computeNext();
+  const model = planModel();
+  if (!model.length) html = '<div class="empty"><div class="ic">🗓</div><p class="t">日程がまだありません</p><p>下の「＋ 日を追加」から作れます。</p></div>';
+  model.forEach(d => {
+    const folded = planFold.has(d.id);
+    const nDone = d.rows.filter(r => planDone[r.id]).length;
+    html += '<button class="day-h tappable" data-day="' + esc(d.id) + '"><span class="dh-l">' + esc(d.title) + (d.sub ? '<small>' + esc(d.sub) + '</small>' : '') + '</span>' +
+      '<span class="dh-r">' + nDone + '/' + d.rows.length + ' <i>' + (folded ? '▸' : '▾') + '</i></span></button>';
+    if (folded) return;
+    html += '<div class="tl">';
+    d.rows.forEach((r, idx) => {
+      const done = !!planDone[r.id];
+      const open = planOpen.has(r.id);
+      const links = safeLinks(r.links);
+      const showCar = !!(r.note || links.length);
+      const isNext = r.id === nextId;
+      html += '<div class="prow' + (done ? ' done' : '') + (open ? ' open' : '') + (r.dl ? ' must' : '') + (isNext ? ' next' : '') + '">' +
+        '<span class="ptime">' + fmtT(r.t || '') + '</span>' +
+        '<span class="pbody more" data-pid="' + esc(r.id) + '" role="button" tabindex="0" aria-expanded="' + open + '">' +
+          '<span class="ptitle">' + (isNext ? '<span class="nx">次</span>' : '') + (r.fx ? '<span class="fx">📌 固定</span>' : '') + (r.dl ? '<span class="dl">' + esc(r.dl) + '</span>' : '') + esc(r.title) +
+          (showCar ? '<i class="car">' + (open ? '▴' : '▾') + '</i>' : '') + '</span>' +
+          (open ? '<span class="pnote">' + (r.note ? esc(r.note) : '') +
+            (links.length ? '<span class="plinks">' + links.map(k => '<a href="' + esc(k.h) + '"' + (k.h.indexOf('tel:') === 0 ? '' : ' target="_blank" rel="noopener"') + '>' + esc(k.l) + '</a>').join('') + '</span>' : '') +
+            '<span class="pacts"><button class="tappable" data-up="' + esc(r.id) + '"' + (idx === 0 || r.fx ? ' disabled' : '') + ' aria-label="上へ">▲</button><button class="tappable" data-down="' + esc(r.id) + '"' + (idx === d.rows.length - 1 || r.fx ? ' disabled' : '') + ' aria-label="下へ">▼</button><button class="tappable" data-edit="' + esc(r.id) + '">✎ 編集</button></span></span>' : '') +
+        '</span>' +
+        '<button class="pchk tappable" data-chk="' + esc(r.id) + '" aria-pressed="' + done + '" aria-label="完了">' + (done ? '✓' : '') + '</button></div>';
+    });
+    html += '</div>' + ('<div class="day-acts"><button class="tappable" data-addrow="' + esc(d.id) + '">＋ 予定を追加</button><button class="tappable" data-editday="' + esc(d.id) + '">この日を編集</button></div>');
+  });
+  $('plan-body').innerHTML = html;
+  if (!planScrolled) {
+    planScrolled = true;
+    const el = document.querySelector('.prow.next');
+    if (el) setTimeout(() => el.scrollIntoView({ block: 'center' }), 60);
+  }
+}
+/* ---------- 日程の編集 ---------- */
+function newId() { return 'x' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
+function closePlanModals() {
+  $('row-modal').style.display = 'none'; $('day-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function fieldErr(input, msg) {
+  input.classList.add('err');
+  const old = input.parentElement.querySelector('.ferr'); if (old) old.remove();
+  const p = document.createElement('p'); p.className = 'ferr'; p.textContent = msg;
+  input.insertAdjacentElement('afterend', p); input.focus();
+}
+function clearFieldErrs(root) { root.querySelectorAll('.ferr').forEach(e => e.remove()); root.querySelectorAll('input.err,textarea.err').forEach(e => e.classList.remove('err')); }
+function linkFields(r) {
+  const o = { tel: '', url: '', map: '' };
+  safeLinks(r && r.links).forEach(k => {
+    if (k.h.indexOf('tel:') === 0) o.tel = k.h.slice(4);
+    else if (k.h.indexOf('https://www.google.com/maps/search/') === 0) { try { o.map = decodeURIComponent(k.h.split('query=')[1] || ''); } catch (e) {} }
+    else if (!o.url) o.url = k.h;
+  });
+  return o;
+}
+let rowEditId = null, rowEditDay = null, dayEditId = null;
+function openRowModal(id, dayId) {
+  rowEditId = id || null; rowEditDay = dayId || null;
+  clearFieldErrs($('row-modal'));
+  const r = id ? state.plan.rows.find(x => x.id === id) : null;
+  const lf = linkFields(r);
+  $('row-title').textContent = r ? '予定を編集' : '予定を追加';
+  $('pm-t').value = r ? r.t : ''; $('pm-title').value = r ? r.title : ''; $('pm-note').value = r ? r.note : '';
+  $('pm-dl').value = r ? r.dl : ''; $('pm-map').value = lf.map; $('pm-tel').value = lf.tel; $('pm-url').value = lf.url;
+  $('pm-fx').checked = !!(r && r.fx);
+  $('pm-delete').style.display = r ? 'block' : 'none';
+  $('row-modal').style.display = 'flex'; document.body.style.overflow = 'hidden';
+  if (!r) setTimeout(() => $('pm-t').focus(), 280);
+}
+function saveRow() {
+  clearFieldErrs($('row-modal'));
+  const title = cleanText($('pm-title').value, 60);
+  if (!title) { fieldErr($('pm-title'), '内容を入力してください'); return; }
+  const t = cleanText($('pm-t').value, 20), dl = cleanText($('pm-dl').value, 20);
+  const note = cleanMulti($('pm-note').value, 300), map = cleanText($('pm-map').value, 80);
+  const tel = cleanText($('pm-tel').value, 20), url = cleanText($('pm-url').value, 300);
+  if (tel && !/^[0-9+\-() ]+$/.test(tel)) { fieldErr($('pm-tel'), '電話番号は数字とハイフンで入力してください'); return; }
+  if (url) {
+    let ok = false;
+    try { const u = new URL(url); ok = u.protocol === 'https:' || u.protocol === 'http:'; } catch (e) { ok = false; }
+    if (!ok) { fieldErr($('pm-url'), 'https:// から始まるURLを入力してください'); return; }
+  }
+  const orig = rowEditId ? state.plan.rows.find(x => x.id === rowEditId) : null;
+  if (rowEditId && !orig) { closePlanModals(); render(); showToast('この予定は、ほかの端末で削除されました', 'info'); return; }
+  if (!rowEditId) {
+    if (!state.plan.days.some(d => d.id === rowEditDay)) { closePlanModals(); render(); showToast('この日は、ほかの端末で削除されました', 'info'); return; }
+    if (state.plan.rows.length >= MAX_ROWS) { showToast('予定は' + MAX_ROWS + '件までです', 'error'); return; }
+  }
+  const ol = linkFields(orig), oLinks = safeLinks(orig && orig.links);
+  const keep = (pred, same, mk) => { const o = oLinks.find(pred); return o && same ? o : mk; };
+  const links = [];
+  if (tel) links.push(keep(k => k.h.indexOf('tel:') === 0, tel === ol.tel, { l: '📞 電話する', h: 'tel:' + tel }));
+  if (url) links.push(keep(k => k.h.indexOf('tel:') !== 0 && k.h.indexOf('https://www.google.com/maps/search/') !== 0, url === ol.url, { l: '🔗 リンク', h: url }));
+  if (map) links.push(keep(k => k.h.indexOf('https://www.google.com/maps/search/') === 0, map === ol.map, { l: '🗺 地図', h: MAP(map) }));
+  const data = { t, title, note, dl, fx: $('pm-fx').checked, links };
+  if (orig) Object.assign(orig, data);
+  else {
+    const sib = state.plan.rows.filter(x => x.day === rowEditDay);
+    const order = (sib.length ? Math.max.apply(null, sib.map(x => x.order)) : 0) + 10;
+    const row = Object.assign({ id: newId(), day: rowEditDay, order }, data);
+    state.plan.rows.push(row); planOpen.add(row.id);
+  }
+  save(); closePlanModals(); render(); showToast('保存しました'); haptic();
+}
+function deleteRow(id) {
+  const r = state.plan.rows.find(x => x.id === id); if (!r) return;
+  const wasDone = !!planDone[id];
+  showConfirm({
+    title: '「' + r.title + '」を削除しますか？',
+    message: '共有している場合は、共有相手の画面からも消えます。削除後、数秒間は「元に戻す」で取り消せます。',
+    onOk: () => {
+      state.plan.rows = state.plan.rows.filter(x => x.id !== id); delete planDone[id];
+      closePlanModals(); save(); savePlanDone(); render();
+      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { state.plan.rows.push(r); if (wasDone) planDone[id] = true; save(); savePlanDone(); render(); } });
+    }
+  });
+}
+function moveRow(id, dir) {
+  const r = state.plan.rows.find(x => x.id === id); if (!r) return;
+  const sib = state.plan.rows.filter(x => x.day === r.day).sort((a, b) => a.order - b.order);
+  const i = sib.findIndex(x => x.id === id), j = i + dir;
+  if (j < 0 || j >= sib.length) return;
+  const o = sib[j].order; sib[j].order = r.order; r.order = o;
+  save(); render(); haptic();
+}
+function openDayModal(id) {
+  dayEditId = id || null;
+  clearFieldErrs($('day-modal'));
+  const d = id ? state.plan.days.find(x => x.id === id) : null;
+  $('day-title-h').textContent = d ? '日を編集' : '日を追加';
+  $('dm-title').value = d ? d.title : ''; $('dm-sub').value = d ? d.sub : '';
+  $('dm-delete').style.display = d ? 'block' : 'none';
+  $('day-modal').style.display = 'flex'; document.body.style.overflow = 'hidden';
+  if (!d) setTimeout(() => $('dm-title').focus(), 280);
+}
+function saveDay() {
+  clearFieldErrs($('day-modal'));
+  const title = cleanText($('dm-title').value, 30);
+  if (!title) { fieldErr($('dm-title'), '日付や名前を入力してください'); return; }
+  const sub = cleanText($('dm-sub').value, 40);
+  const d = dayEditId ? state.plan.days.find(x => x.id === dayEditId) : null;
+  if (dayEditId && !d) { closePlanModals(); render(); showToast('この日は、ほかの端末で削除されました', 'info'); return; }
+  if (d) { d.title = title; d.sub = sub; }
+  else {
+    if (state.plan.days.length >= MAX_DAYS) { showToast('日は' + MAX_DAYS + '日までです', 'error'); return; }
+    const order = (state.plan.days.length ? Math.max.apply(null, state.plan.days.map(x => x.order)) : 0) + 1000;
+    state.plan.days.push({ id: newId(), title, sub, order });
+  }
+  save(); closePlanModals(); render(); showToast('保存しました'); haptic();
+}
+function deleteDay(id) {
+  const d = state.plan.days.find(x => x.id === id); if (!d) return;
+  const rows = state.plan.rows.filter(r => r.day === id);
+  const doneIds = rows.filter(r => planDone[r.id]).map(r => r.id);
+  showConfirm({
+    title: '「' + d.title + '」を削除しますか？',
+    message: 'この日の予定' + rows.length + '件も削除されます。共有している場合は、共有相手の画面からも消えます。',
+    label: 'この日を削除する',
+    onOk: () => {
+      state.plan.days = state.plan.days.filter(x => x.id !== id);
+      state.plan.rows = state.plan.rows.filter(r => r.day !== id);
+      rows.forEach(r => delete planDone[r.id]);
+      closePlanModals(); save(); savePlanDone(); render();
+      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { state.plan.days.push(d); rows.forEach(r => state.plan.rows.push(r)); doneIds.forEach(x => { planDone[x] = true; }); save(); savePlanDone(); render(); } });
+    }
+  });
+}
+$('page-plan').addEventListener('click', e => {
+  if (e.target.closest('a')) return;
+  const chk = e.target.closest('[data-chk]');
+  const body = e.target.closest('[data-pid]');
+  const day = e.target.closest('[data-day]');
+  const up = e.target.closest('[data-up]'), down = e.target.closest('[data-down]'), ed = e.target.closest('[data-edit]');
+  const addrow = e.target.closest('[data-addrow]'), editday = e.target.closest('[data-editday]');
+  if (up) { moveRow(up.dataset.up, -1); return; }
+  if (down) { moveRow(down.dataset.down, 1); return; }
+  if (ed) { openRowModal(ed.dataset.edit); return; }
+  if (addrow) { openRowModal(null, addrow.dataset.addrow); return; }
+  if (editday) { openDayModal(editday.dataset.editday); return; }
+  if (chk) {
+    const id = chk.dataset.chk;
+    if (planDone[id]) delete planDone[id]; else planDone[id] = true;
+    savePlanDone(); haptic();
+  } else if (body) {
+    const id = body.dataset.pid;
+    if (planOpen.has(id)) planOpen.delete(id); else planOpen.add(id);
+  } else if (day) {
+    const id = day.dataset.day;
+    if (planFold.has(id)) planFold.delete(id); else planFold.add(id);
+  } else return;
+  render();
+});
+$('btn-add-day').addEventListener('click', () => openDayModal());
+$('pm-save').addEventListener('click', saveRow);
+$('pm-cancel').addEventListener('click', closePlanModals);
+$('row-bg').addEventListener('click', closePlanModals);
+$('pm-delete').addEventListener('click', () => deleteRow(rowEditId));
+$('dm-save').addEventListener('click', saveDay);
+$('dm-cancel').addEventListener('click', closePlanModals);
+$('day-bg').addEventListener('click', closePlanModals);
+$('dm-delete').addEventListener('click', () => deleteDay(dayEditId));
+
+/* ---------- ショー・パス ---------- */
+let passEditId = null, passPickedStatus = 'none';
+function passSorted() {
+  const rank = { won: 0, wait: 1, none: 2, lost: 3 };
+  return state.passes.slice().sort((a, b) => (a.day || '~').localeCompare(b.day || '~', 'ja', { numeric: true }) || (a.time || '~').localeCompare(b.time || '~', 'ja', { numeric: true }) || rank[a.status] - rank[b.status]);
+}
+function renderPasses() {
+  const list = passSorted();
+  const n = st => list.filter(x => x.status === st).length;
+  $('pass-sum').textContent = list.length ? '当選 ' + n('won') + ' ／ 結果待ち ' + n('wait') + ' ／ 未申込 ' + n('none') + ' ／ 落選 ' + n('lost') : '';
+  if (!list.length) { $('pass-body').innerHTML = '<div class="empty"><div class="ic">🎟</div><p class="t">ショー・パスはまだありません</p><p>ショー、パレード、DPA、プライオリティパス、エントリー受付（抽選）の予定と結果を、ここで管理できます。</p></div>'; return; }
+  let html = '', lastDay = null;
+  list.forEach(x => {
+    if (x.day !== lastDay) { lastDay = x.day; html += '<div class="day-h" style="cursor:default;">' + (x.day ? esc(x.day) : '日にち未定') + '</div>'; }
+    const sub = [PASS_KINDS[x.kind], PASS_PARKS[x.park]].filter(Boolean).join('・');
+    html += '<div class="pass st-' + x.status + '" data-pid="' + esc(x.id) + '"><div class="pass-top"><div class="pass-title">' + esc(x.title) + '<small>' + esc(sub) + '</small></div>' +
+      '<button class="pass-edit tappable" data-pedit="' + esc(x.id) + '" aria-label="編集">✎</button></div>' +
+      (x.time ? '<div class="pass-time">⏰ ' + esc(x.time) + '</div>' : '') +
+      (x.note ? '<div class="pass-note">' + esc(x.note) + '</div>' : '') +
+      '<div class="pass-st">' + Object.keys(PASS_STATUS).map(k => '<button class="tappable' + (x.status === k ? ' on' : '') + '" data-st="' + k + '" data-pst="' + esc(x.id) + '" aria-pressed="' + (x.status === k) + '">' + PASS_STATUS[k] + '</button>').join('') + '</div></div>';
+  });
+  $('pass-body').innerHTML = html;
+}
+function setPassPick(st) {
+  passPickedStatus = st;
+  document.querySelectorAll('#ps-status button').forEach(b => b.classList.toggle('sel', b.dataset.st === st));
+}
+function fillSelect(el, map) { el.innerHTML = Object.keys(map).map(k => '<option value="' + k + '">' + esc(map[k]) + '</option>').join(''); }
+function closePassModal() { $('pass-modal').style.display = 'none'; document.body.style.overflow = ''; passEditId = null; }
+function openPassModal(id) {
+  passEditId = id || null;
+  clearFieldErrs($('pass-modal'));
+  const x = id ? state.passes.find(p => p.id === id) : null;
+  $('pass-title-h').textContent = x ? 'ショー・パスを編集' : 'ショー・パスを追加';
+  $('ps-kind').value = x ? x.kind : 'show'; $('ps-title').value = x ? x.title : '';
+  $('ps-park').value = x ? x.park : ''; $('ps-day').value = x ? x.day : '';
+  $('ps-time').value = x ? x.time : ''; $('ps-note').value = x ? x.note : '';
+  setPassPick(x ? x.status : 'none');
+  $('ps-delete').style.display = x ? 'block' : 'none';
+  $('pass-modal').style.display = 'flex'; document.body.style.overflow = 'hidden';
+  if (!x) setTimeout(() => $('ps-title').focus(), 280);
+}
+function savePass() {
+  clearFieldErrs($('pass-modal'));
+  const title = cleanText($('ps-title').value, 40);
+  if (!title) { fieldErr($('ps-title'), '名前を入力してください'); return; }
+  const orig = passEditId ? state.passes.find(p => p.id === passEditId) : null;
+  if (passEditId && !orig) { closePassModal(); render(); showToast('これは、ほかの端末で削除されました', 'info'); return; }
+  if (!orig && state.passes.length >= MAX_PASSES) { showToast('登録は' + MAX_PASSES + '件までです', 'error'); return; }
+  const data = { title, kind: $('ps-kind').value, park: $('ps-park').value, day: cleanText($('ps-day').value, 10), status: passPickedStatus, time: cleanText($('ps-time').value, 20), note: cleanMulti($('ps-note').value, 300) };
+  if (orig) Object.assign(orig, data); else state.passes.push(Object.assign({ id: newId() }, data));
+  state.passes = normPasses(state.passes);
+  save(); closePassModal(); render(); showToast('保存しました'); haptic();
+}
+function deletePass(id) {
+  const x = state.passes.find(p => p.id === id); if (!x) return;
+  showConfirm({
+    title: '「' + x.title + '」を削除しますか？',
+    message: '共有している場合は、共有相手の画面からも消えます。削除後、数秒間は「元に戻す」で取り消せます。',
+    onOk: () => {
+      state.passes = state.passes.filter(p => p.id !== id);
+      closePassModal(); save(); render();
+      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { state.passes.push(x); save(); render(); } });
+    }
+  });
+}
+fillSelect($('ps-kind'), PASS_KINDS); fillSelect($('ps-park'), PASS_PARKS);
+$('ps-status').innerHTML = Object.keys(PASS_STATUS).map(k => '<button type="button" class="tappable" data-st="' + k + '">' + PASS_STATUS[k] + '</button>').join('');
+$('ps-status').addEventListener('click', e => { const b = e.target.closest('button[data-st]'); if (b) { setPassPick(b.dataset.st); haptic(); } });
+$('pass-body').addEventListener('click', e => {
+  const st = e.target.closest('[data-pst]'), ed = e.target.closest('[data-pedit]');
+  if (st) {
+    const x = state.passes.find(p => p.id === st.dataset.pst);
+    if (x && x.status !== st.dataset.st) { x.status = st.dataset.st; save(); render(); haptic(); }
+  } else if (ed) openPassModal(ed.dataset.pedit);
+});
+$('btn-add-pass').addEventListener('click', () => openPassModal());
+$('ps-save').addEventListener('click', savePass);
+$('ps-cancel').addEventListener('click', closePassModal);
+$('pass-bg').addEventListener('click', closePassModal);
+$('ps-delete').addEventListener('click', () => deletePass(passEditId));
+
+/* ---------- 共有・同期(Firebase Firestore) ---------- */
+// 共有データは「キー → 値」の平らな形で1つのドキュメントに保存する
+//   i<id>: 持ち物 / f<name>: 送付情報 / p<id>: 日程の完了チェック
+const SYNC = { api: null, tripId: '', baseline: null, timer: null };
+function genTripId() {
+  const a = new Uint8Array(16);
+  try { crypto.getRandomValues(a); } catch (e) { for (let i = 0; i < 16; i++) a[i] = Math.floor(Math.random() * 256); }
+  return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+}
+function resolveTripId() {
+  let id = '';
+  const m = /[#&]t=([A-Za-z0-9_-]{8,64})/.exec(location.hash);
+  if (m) id = m[1];
+  try { if (!id) id = store.get('travelTripId') || ''; } catch (e) {}
+  if (!id) id = genTripId();
+  try { store.set('travelTripId', id); } catch (e) {}
+  try { history.replaceState(null, '', location.pathname + location.search + '#t=' + id); } catch (e) {}
+  return id;
+}
+function ser(v) {
+  if (v === undefined) return 'u';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map(k => k + ':' + ser(v[k])).join(',') + '}';
+  return JSON.stringify(v);
+}
+function buildFlat() {
+  const f = {};
+  state.items.forEach(i => { f['i' + i.id] = { id: i.id, name: i.name, dest: i.dest, memo: i.memo || '', done: !!i.done }; });
+  Object.keys(state.info).forEach(k => { if (state.info[k]) f['f' + k] = String(state.info[k]); });
+  Object.keys(planDone).forEach(k => { if (planDone[k]) f['p' + k] = true; });
+  state.plan.days.forEach(d => { f['d' + d.id] = { id: d.id, title: d.title, sub: d.sub || '', order: d.order }; });
+  state.plan.rows.forEach(r => {
+    const o = { id: r.id, day: r.day, order: r.order, t: r.t || '', title: r.title, note: r.note || '', dl: r.dl || '', links: (r.links || []).map(k => ({ l: k.l, h: k.h })) };
+    if (r.fx !== undefined) o.fx = !!r.fx;
+    f['r' + r.id] = o;
+  });
+  state.passes.forEach(x => { f['w' + x.id] = { id: x.id, title: x.title, kind: x.kind, park: x.park, day: x.day, status: x.status, time: x.time, note: x.note }; });
+  if (state.plan.seeded) f['s'] = true;
+  return f;
+}
+function applyFlat(f) {
+  const rawItems = [], rawInfo = {}, pd = {}, rawDays = [], rawRows = [], rawPass = [];
+  let seeded = false;
+  Object.keys(f || {}).forEach(k => {
+    const v = f[k], c = k[0], rest = k.slice(1);
+    if (c === 'i' && v && typeof v === 'object') rawItems.push(v);
+    else if (c === 'f') rawInfo[rest] = v;
+    else if (c === 'p' && v) pd[rest] = true;
+    else if (c === 'd' && v && typeof v === 'object') rawDays.push(Object.assign({}, v, { id: rest }));
+    else if (c === 'r' && v && typeof v === 'object') rawRows.push(Object.assign({}, v, { id: rest }));
+    else if (c === 'w' && v && typeof v === 'object') rawPass.push(Object.assign({}, v, { id: rest }));
+    else if (k === 's' && v) seeded = true;
+  });
+  const items = normItems(rawItems).sort((a, b) => a.id - b.id);
+  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded }) || emptyPlan(), passes: normPasses(rawPass) };
+  planDone = normDone(pd);
+}
+function persistQuiet() {
+  const a = store.set(KEY, JSON.stringify(state)), b = store.set(PLAN_KEY, JSON.stringify(planDone));
+  if (!a || !b) notifyOnce('save', SAVE_FAIL, 'error', 30000);
+}
+function loadBaseline() {
+  const b = parseJSON(store.get('travelSyncBase_' + SYNC.tripId), null);
+  return b && typeof b === 'object' && !Array.isArray(b) ? b : null;
+}
+function saveBaseline() {
+  let ok = false;
+  try { ok = store.set('travelSyncBase_' + SYNC.tripId, JSON.stringify(SYNC.baseline)); } catch (e) { ok = false; }
+  return ok;
+}
+function diffPatch() {
+  const loc = buildFlat(), base = SYNC.baseline || {}, p = {};
+  Object.keys(loc).forEach(k => { if (ser(loc[k]) !== ser(base[k])) p[k] = loc[k]; });
+  Object.keys(base).forEach(k => { if (!(k in loc)) p[k] = null; });
+  return p;
+}
+function shareUrl() {
+  return location.protocol === 'file:' ? '' : location.origin + location.pathname + '#t=' + SYNC.tripId;
+}
+function refreshDot() {
+  let st = 'off', tip = '同期していません（この端末だけで使っています）';
+  if (SYNC.api) {
+    if (SYNC.baseline === null) { st = 'pend'; tip = '接続中…'; }
+    else if (Object.keys(diffPatch()).length) { st = 'pend'; tip = '未送信の変更があります。通信が戻ると自動で送られます'; }
+    else { st = 'ok'; tip = '同期済み'; }
+  }
+  const d = $('sync-dot');
+  if (d) { d.className = 'sync-dot ' + st; d.title = tip; }
+  const url = shareUrl();
+  const si = $('share-url'); if (si) si.value = url;
+  const ss = $('share-status');
+  if (ss) ss.textContent = !url ? 'アプリを公開URLで開くと、共有リンクが表示されます。' : '状態: ' + tip;
+}
+function schedulePush() {
+  if (!SYNC.api) return;
+  refreshDot();
+  clearTimeout(SYNC.timer);
+  SYNC.timer = setTimeout(pushNow, 500);
+}
+function pushNow() {
+  if (!SYNC.api || SYNC.baseline === null) { refreshDot(); return; }
+  const p = diffPatch();
+  refreshDot();
+  if (!Object.keys(p).length) return;
+  let pr;
+  try { pr = SYNC.api.send(SYNC.tripId, p); } catch (e) { refreshDot(); reportSyncError(e); return; }
+  Promise.resolve(pr).then(refreshDot, err => { refreshDot(); reportSyncError(err); });
+}
+function onRemote(exists, remote, pending) {
+  if (pending) return; // 自分の未確定の書き込みを含むスナップショットは無視
+  if (SYNC.baseline === null) {
+    // この端末で初めて開いた共有: 既にあれば相手のデータを採用、無ければ自分のデータを送る
+    if (exists) { SYNC.baseline = remote; applyFlat(remote); } else { SYNC.baseline = {}; }
+  } else {
+    // 自分が未送信の変更はそのまま残し、それ以外は相手の最新を取り込む
+    const loc = buildFlat(), base = SYNC.baseline, out = {};
+    const keys = new Set([...Object.keys(loc), ...Object.keys(base), ...Object.keys(remote)]);
+    keys.forEach(k => {
+      const v = ser(loc[k]) === ser(base[k]) ? remote[k] : loc[k];
+      if (v !== undefined) out[k] = v;
+    });
+    SYNC.baseline = remote;
+    applyFlat(out);
+  }
+  ensureSeed();
+  persistQuiet(); saveBaseline();
+  render();
+  pushNow();
+}
+window.__initSync = function (api) {
+  if (SYNC.api || !api) return; // 二重初期化の防止
+  SYNC.api = api;
+  SYNC.baseline = loadBaseline();
+  refreshDot();
+  try {
+    api.listen(SYNC.tripId, (exists, remote, pending) => {
+      try { onRemote(exists, remote, pending); } catch (e) { reportError(e, '共有データの取り込みでエラーが起きました'); }
+    }, err => { refreshDot(); reportSyncError(err); });
+  } catch (e) { SYNC.api = null; refreshDot(); reportSyncError(e); }
+};
+window.__syncFail = function () { SYNC.api = null; refreshDot(); if (navigator.onLine !== false) notifyOnce('syncload', '共有機能を読み込めませんでした。この端末だけで使えます', 'info', 60000); };
+SYNC.tripId = resolveTripId();
+ensureSeed(); persistQuiet();
+window.addEventListener('online', pushNow);
+window.addEventListener('storage', e => {
+  if (e.key !== KEY && e.key !== PLAN_KEY) return;
+  state = loadData(); planDone = normDone(parseJSON(store.get(PLAN_KEY), {})); ensureSeed();
+  render();
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pushNow(); });
+$('btn-copy-share').addEventListener('click', async () => {
+  const url = shareUrl();
+  if (!url) { showToast('公開URLで開いたときだけ使えます', 'info'); return; }
+  try { await navigator.clipboard.writeText(url); showToast('共有リンクをコピーしました'); }
+  catch (e) { const i = $('share-url'); i.focus(); i.select(); showToast('長押ししてコピーしてください', 'info'); }
+  haptic();
+});
+$('sync-dot').addEventListener('click', () => { const d = $('sync-dot'); showToast(d.title, d.classList.contains('ok') ? 'success' : 'info'); });
+refreshDot();
+
+/* ---------- アプリ化(PWA) ---------- */
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; $('btn-install').style.display = 'block'; });
+window.addEventListener('appinstalled', () => { deferredInstall = null; $('btn-install').style.display = 'none'; showToast('ホーム画面に追加しました'); });
+$('btn-install').addEventListener('click', async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  try { await deferredInstall.userChoice; } catch (e) {}
+  deferredInstall = null; $('btn-install').style.display = 'none';
+});
+try {
+  if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) {
+    $('install-text').textContent = 'このアプリはホーム画面から起動しています。';
+  }
+} catch (e) {}
+$('btn-join').addEventListener('click', () => {
+  const v = $('join-input').value.trim();
+  const m = /[#&?]t=([A-Za-z0-9_-]{8,64})\s*$/.exec(v) || /^([0-9a-f]{32})$/i.exec(v);
+  if (!m) { showToast('共有リンクが読み取れません', 'error'); return; }
+  const id = m[1];
+  if (id === SYNC.tripId) { showToast('すでにこの共有に参加しています', 'info'); return; }
+  showConfirm({
+    title: 'この共有に参加しますか？',
+    message: 'この端末のデータは、共有されているデータに置き換わります。',
+    label: '参加する',
+    onOk: () => { try { store.set('travelTripId', id); } catch (e) {} location.hash = 't=' + id; location.reload(); }
+  });
+});
+
+/* ---------- 初期化（DOM の準備ができてから一度だけ） ---------- */
+initInfoForm();
+showPage('plan');
+bootNotices.forEach(m => showToast(m, 'error'));
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+if (window.__fbApi) window.__initSync(window.__fbApi);
+if (window.__fbFailed) window.__syncFail();
+/*__TEST_HOOK__*/
+}
+function __boot() {
+  if (window.__booted) return;
+  window.__booted = true;
+  try { __app(); } catch (e) { __fatal(e); }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', __boot, { once: true });
+else __boot();
+</script>
+<script type="module">
+const firebaseConfig = {
+  apiKey: "AIzaSyBH9iz8mSeB9xYHH311XTdCWVBxISo85Jc",
+  authDomain: "tokyo-trip-9f7a9.firebaseapp.com",
+  projectId: "tokyo-trip-9f7a9",
+  storageBucket: "tokyo-trip-9f7a9.firebasestorage.app",
+  messagingSenderId: "822793081230",
+  appId: "1:822793081230:web:368fec3a60c8f76ceed4df"
+};
+const V = '10.12.2';
+try {
+  const [{ initializeApp }, fs] = await Promise.all([
+    import('https://www.gstatic.com/firebasejs/' + V + '/firebase-app.js'),
+    import('https://www.gstatic.com/firebasejs/' + V + '/firebase-firestore.js')
+  ]);
+  const app = initializeApp(firebaseConfig);
+  const db = fs.initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  const api = {
+    listen: (tripId, cb, eb) => fs.onSnapshot(fs.doc(db, 'trips', tripId),
+      snap => cb(snap.exists(), snap.exists() ? ((snap.data() || {}).data || {}) : {}, snap.metadata.hasPendingWrites), eb),
+    send: (tripId, patch) => {
+      const d = {};
+      Object.keys(patch).forEach(k => { d[k] = patch[k] === null ? fs.deleteField() : patch[k]; });
+      return fs.setDoc(fs.doc(db, 'trips', tripId), { data: d }, { merge: true });
+    }
+  };
+  window.__fbApi = api;
+  if (typeof window.__initSync === 'function') window.__initSync(api);
+} catch (e) {
+  console.error('sync init failed', e);
+  window.__fbFailed = true;
+  if (typeof window.__syncFail === 'function') window.__syncFail(e);
+}
+</script>
+</body>
+</html>
