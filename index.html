@@ -196,6 +196,13 @@ body.editing #sel-bar { display: flex; }
 .pass-st button.on[data-st="wait"] { background: #fef9c3; border-color: #eab308; color: #854d0e; }
 .pass-st button.on[data-st="won"] { background: #dcfce7; border-color: #22c55e; color: #15803d; }
 .pass-st button.on[data-st="lost"] { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+.flow { margin-top: 10px; display: grid; gap: 6px; }
+.flow-b { display: flex; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; line-height: 1.5; background: var(--c-surface); border: 1.5px solid var(--c-border); }
+.flow-b b { flex: none; font-size: 12px; white-space: nowrap; }
+.flow-b.win b { color: #15803d; } .flow-b.lose b { color: #b91c1c; }
+.flow-b.hit.win { background: #dcfce7; border-color: #22c55e; }
+.flow-b.hit.lose { background: #fee2e2; border-color: #ef4444; }
+.flow-b.dim { opacity: .4; }
 .pass-sum { margin: 0 16px 8px; font-size: 12px; color: var(--c-sub); }
 .seg-pick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .seg-pick button { height: 44px; border: 1.5px solid var(--c-border); border-radius: 8px; background: var(--c-bg); color: var(--c-sub); font-size: 13px; font-weight: 600; }
@@ -256,6 +263,11 @@ body.editing #sel-bar { display: flex; }
 #row-modal, #day-modal { z-index: 200; }
 .fx { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: #f3e8ff; color: #6b21a8; }
 .prow.done .fx { background: var(--c-surface); color: var(--c-sub); }
+.tp { display: flex; gap: 8px; flex-wrap: wrap; }
+.tp .tp-time { flex: 1; min-width: 120px; width: auto; }
+.tp .tp-q { flex: 1; min-width: 110px; width: auto; }
+.tp .tp-free { flex: 1 1 100%; width: 100%; }
+.tp-clear { flex: none; height: 44px; padding: 0 14px; border: 1.5px solid var(--c-border); border-radius: var(--radius-s); background: var(--c-bg); color: var(--c-sub); font-size: 13px; font-weight: 600; }
 .chkrow { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; padding: 12px; border: 1.5px solid var(--c-border); border-radius: var(--radius-m); }
 .chkrow input { width: 22px; height: 22px; margin-top: 2px; flex: none; accent-color: #7c3aed; }
 .chkrow span { display: block; font-size: 15px; }
@@ -437,7 +449,7 @@ body.editing #sel-bar { display: flex; }
   <div class="sheet">
     <div class="grab"></div>
     <h2 id="row-title">予定を追加</h2>
-    <div class="field"><label>時刻</label><input id="pm-t" type="text" placeholder="例：9:20　／　約10:00　／　11:00まで" maxlength="20" autocomplete="off"></div>
+    <div class="field"><label>時刻</label><div class="tp" id="pm-t"><input type="time" class="tp-time" aria-label="時刻"><select class="tp-q" aria-label="時刻の種類"><option value="">ちょうど</option><option value="約">約（目安）</option><option value="まで">まで</option><option value="から">から</option></select><button type="button" class="tp-clear tappable">消す</button><input type="text" class="tp-free" maxlength="20" placeholder="例：朝イチ" autocomplete="off" hidden></div></div>
     <div class="field"><label>内容</label><input id="pm-title" type="text" placeholder="例：ホテルをチェックアウト" maxlength="60" autocomplete="off"></div>
     <label class="chkrow"><input type="checkbox" id="pm-fx"><span><b>📌 動かせない予定</b><small>予約済み・時間を変えられない予定（バス、飛行機、レストランなど）</small></span></label>
     <div class="field"><label>メモ（任意）</label><textarea id="pm-note" placeholder="例：公式は11:00。早めの設定" maxlength="300"></textarea></div>
@@ -476,7 +488,9 @@ body.editing #sel-bar { display: flex; }
     <div class="field"><label>パーク・日にち</label>
       <div style="display:flex;gap:8px;"><select id="ps-park" style="flex:1.2;"></select><input id="ps-day" type="text" placeholder="例：11/2" maxlength="10" autocomplete="off" style="flex:1;width:auto;"></div></div>
     <div class="field"><label>状況</label><div class="seg-pick" id="ps-status"></div></div>
-    <div class="field"><label>時間（当選・指定された時間／受付時刻）</label><input id="ps-time" type="text" placeholder="例：14:30　／　7:00 受付開始" maxlength="20" autocomplete="off"></div>
+    <div class="field"><label>時間（当選・指定された時間／受付時刻）</label><div class="tp" id="ps-time" data-simple="1"><input type="time" class="tp-time" aria-label="時間"><button type="button" class="tp-clear tappable">消す</button><input type="text" class="tp-free" maxlength="20" placeholder="例：7:00 受付開始" autocomplete="off" hidden></div></div>
+    <div class="field"><label>✅ 当選したら（任意）</label><input id="ps-win" type="text" placeholder="例：13:00に西側広場へ集合" maxlength="100" autocomplete="off"></div>
+    <div class="field"><label>❌ 外れたら（任意）</label><input id="ps-lose" type="text" placeholder="例：スタンバイの列に並ぶ／別の抽選へ" maxlength="100" autocomplete="off"></div>
     <div class="field"><label>メモ（任意）</label><textarea id="ps-note" placeholder="例：アプリで抽選。受付は開園の30分前" maxlength="300"></textarea></div>
     <div style="display:flex;gap:10px;margin-bottom:10px;"><button id="ps-save" class="btn primary tappable">保存</button></div>
     <button id="ps-delete" class="btn dangerline tappable" style="margin-bottom:10px;display:none;">削除</button>
@@ -593,7 +607,7 @@ function normPlan(pl) {
     seenR.add(id);
     rows.push({ id, day, order: num(r.order), t: cleanText(r.t, 20), title, note: cleanMulti(r.note, 300), dl: cleanText(r.dl, 20), fx: r.fx === undefined ? undefined : !!r.fx, links: safeLinks(r.links) });
   });
-  return { days: days.slice(0, MAX_DAYS), rows: rows.slice(0, MAX_ROWS), seeded: !!pl.seeded || days.length > 0 || rows.length > 0 };
+  return { days: days.slice(0, MAX_DAYS), rows: rows.slice(0, MAX_ROWS), seeded: !!pl.seeded || days.length > 0 || rows.length > 0, ret: !!pl.ret };
 }
 const PASS_KINDS = { show: '🎭 ショー', parade: '🎆 パレード', dpa: '⚡ DPA', pp: '🎟 プライオリティパス', entry: '🎲 エントリー受付（抽選）', other: '📌 その他' };
 const PASS_PARKS = { '': 'パーク未定', land: 'ランド', sea: 'シー' };
@@ -613,7 +627,8 @@ function normPasses(arr) {
       day: cleanText(x.day, 10),
       status: PASS_STATUS[x.status] ? x.status : 'none',
       time: cleanText(x.time, 20),
-      note: cleanMulti(x.note, 300)
+      note: cleanMulti(x.note, 300),
+      onWin: cleanText(x.onWin, 100), onLose: cleanText(x.onLose, 100)
     });
   });
   return out.slice(0, MAX_PASSES);
@@ -713,7 +728,7 @@ function makeDefaultItems(existingNames) {
     .map((s, idx) => ({ id: base + idx, name: s[0], dest: s[1], memo: s[2], done: false }));
 }
 const emptyInfo = () => ({ trip: '', depart: '', stay: '', addr: '', sendDate: '', arrive: '', tracking: '', memo: '' });
-const emptyPlan = () => ({ days: [], rows: [], seeded: false });
+const emptyPlan = () => ({ days: [], rows: [], seeded: false, ret: false });
 const defaultData = () => ({ items: makeDefaultItems([]), info: emptyInfo(), plan: emptyPlan(), passes: [] });
 
 function loadData() {
@@ -1395,8 +1410,15 @@ let planScrolled = false;
   if (ymd >= 20261101) planFold.add('pre');
   if (ymd >= 20261103) planFold.add('d1');
 })();
+function dateKey(str) { const m = /(\d{1,2})\s*[\/月]\s*(\d{1,2})/.exec(String(str || '')); return m ? Number(m[1]) * 100 + Number(m[2]) : null; }
 function planModel() {
   const days = state.plan.days.slice().sort((x, y) => x.order - y.order);
+  // 名前に「11/2」「11月2日」のような日付がある日は日付順に並べる（日付のない日は今の位置のまま）
+  const dkey = d => dateKey(d.title);
+  const slots = [], dated = [];
+  days.forEach((d, i) => { if (dkey(d) !== null) { slots.push(i); dated.push(d); } });
+  dated.sort((x, y) => dkey(x) - dkey(y));
+  slots.forEach((pos, k) => { days[pos] = dated[k]; });
   return days.map(d => Object.assign({}, d, { rows: state.plan.rows.filter(r => r.day === d.id).sort((x, y) => x.order - y.order) }));
 }
 const FIXED_SEED = new Set(['a7', 'a9', 'a11', 'b6', 'b11']); // 予約済みで動かせない予定
@@ -1406,12 +1428,23 @@ function seedPlan() {
     days.push({ id: d.id, title: d.title, sub: d.sub || '', order: (di + 1) * 1000 });
     d.rows.forEach((r, ri) => rows.push({ id: r.id, day: d.id, order: (ri + 1) * 10, t: r.t, title: r.title, note: r.note || '', dl: r.dl || '', fx: FIXED_SEED.has(r.id) ? true : undefined, links: (r.links || []).map(k => ({ l: k.l, h: k.h })) }));
   });
-  state.plan = { days, rows, seeded: true };
+  state.plan = { days, rows, seeded: true, ret: false };
 }
 function ensureSeed() {
   if (!state.plan) state.plan = emptyPlan();
   if (!state.plan.seeded) {
     if (state.plan.days.length === 0 && state.plan.rows.length === 0) seedPlan(); else state.plan.seeded = true;
+  }
+  // 11/3 の朝に「ホテルのフロントから荷物を送り返す」予定を一度だけ足す（消しても復活しない）
+  if (!state.plan.ret) {
+    if (state.plan.days.some(d => d.id === 'd3') && !state.plan.rows.some(r => r.id === 'c1')) {
+      [['c1', '約9:00', '送り返す荷物をまとめる', '持ち帰る物と送る物を分ける'],
+       ['c2', '約9:15', '宅配伝票を書く', '送り先は自宅。住所は設定タブから写せます'],
+       ['c3', '約9:30', 'フロントで荷物を送り返す', 'チェックアウト前に。受付の締切時刻はフロントで確認'],
+       ['c4', '約9:35', '控え・追跡番号を残す', '設定タブの追跡番号欄にメモ']
+      ].forEach((c, i) => state.plan.rows.push({ id: c[0], day: 'd3', order: i + 1, t: c[1], title: c[2], note: c[3], dl: '', fx: undefined, links: [] }));
+    }
+    state.plan.ret = true;
   }
   // 固定フラグが未設定の初期の予定には、予約済みの印を付ける（一度設定したら変更しない）
   state.plan.rows.forEach(r => { if (r.fx === undefined && FIXED_SEED.has(r.id)) r.fx = true; });
@@ -1494,18 +1527,18 @@ function openRowModal(id, dayId) {
   const r = id ? state.plan.rows.find(x => x.id === id) : null;
   const lf = linkFields(r);
   $('row-title').textContent = r ? '予定を編集' : '予定を追加';
-  $('pm-t').value = r ? r.t : ''; $('pm-title').value = r ? r.title : ''; $('pm-note').value = r ? r.note : '';
+  tpSet('pm-t', r ? r.t : ''); $('pm-title').value = r ? r.title : ''; $('pm-note').value = r ? r.note : '';
   $('pm-dl').value = r ? r.dl : ''; $('pm-map').value = lf.map; $('pm-tel').value = lf.tel; $('pm-url').value = lf.url;
   $('pm-fx').checked = !!(r && r.fx);
   $('pm-delete').style.display = r ? 'block' : 'none';
   $('row-modal').style.display = 'flex'; document.body.style.overflow = 'hidden';
-  if (!r) setTimeout(() => $('pm-t').focus(), 280);
+  if (!r) setTimeout(() => $('pm-title').focus(), 280);
 }
 function saveRow() {
   clearFieldErrs($('row-modal'));
   const title = cleanText($('pm-title').value, 60);
   if (!title) { fieldErr($('pm-title'), '内容を入力してください'); return; }
-  const t = cleanText($('pm-t').value, 20), dl = cleanText($('pm-dl').value, 20);
+  const t = tpGet('pm-t'), dl = cleanText($('pm-dl').value, 20);
   const note = cleanMulti($('pm-note').value, 300), map = cleanText($('pm-map').value, 80);
   const tel = cleanText($('pm-tel').value, 20), url = cleanText($('pm-url').value, 300);
   if (tel && !/^[0-9+\-() ]+$/.test(tel)) { fieldErr($('pm-tel'), '電話番号は数字とハイフンで入力してください'); return; }
@@ -1653,10 +1686,69 @@ function renderPasses() {
       '<button class="pass-edit tappable" data-pedit="' + esc(x.id) + '" aria-label="編集">✎</button></div>' +
       (x.time ? '<div class="pass-time">⏰ ' + esc(x.time) + '</div>' : '') +
       (x.note ? '<div class="pass-note">' + esc(x.note) + '</div>' : '') +
+      (x.onWin || x.onLose ? '<div class="flow">' +
+        (x.onWin ? '<div class="flow-b win' + (x.status === 'won' ? ' hit' : x.status === 'lost' ? ' dim' : '') + '"><b>✅ 当選なら</b><span>' + esc(x.onWin) + '</span></div>' : '') +
+        (x.onLose ? '<div class="flow-b lose' + (x.status === 'lost' ? ' hit' : x.status === 'won' ? ' dim' : '') + '"><b>❌ 外れたら</b><span>' + esc(x.onLose) + '</span></div>' : '') + '</div>' : '') +
       '<div class="pass-st">' + Object.keys(PASS_STATUS).map(k => '<button class="tappable' + (x.status === k ? ' on' : '') + '" data-st="' + k + '" data-pst="' + esc(x.id) + '" aria-pressed="' + (x.status === k) + '">' + PASS_STATUS[k] + '</button>').join('') + '</div></div>';
   });
   $('pass-body').innerHTML = html;
 }
+// 当選したパスは日程に自動で入り、当選以外にすると日程から外れる（日程の行IDは「ps＋パスのID」で固定）
+function passRowId(x) { return 'ps' + x.id; }
+function timeMin(t) { const m = /(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+function removePassRow(x) {
+  const id = passRowId(x), had = state.plan.rows.some(r => r.id === id);
+  state.plan.rows = state.plan.rows.filter(r => r.id !== id); delete planDone[id];
+  return had;
+}
+function syncPassRow(x) {
+  if (x.status !== 'won') return removePassRow(x) ? 'removed' : '';
+  const key = dateKey(x.day);
+  if (key === null) { removePassRow(x); return 'noday'; }
+  let day = state.plan.days.find(d => dateKey(d.title) === key);
+  if (!day) {
+    if (state.plan.days.length >= MAX_DAYS) return 'full';
+    day = { id: 'dd' + key, title: x.day, sub: '', order: Math.max.apply(null, [0].concat(state.plan.days.map(d => d.order))) + 1000 };
+    state.plan.days.push(day);
+  }
+  const id = passRowId(x), old = state.plan.rows.find(r => r.id === id);
+  if (!old && state.plan.rows.length >= MAX_ROWS) return 'full';
+  const sib = state.plan.rows.filter(r => r.day === day.id && r.id !== id).sort((a, b) => a.order - b.order);
+  const m = timeMin(x.time);
+  let order;
+  if (m === null) order = (sib.length ? sib[sib.length - 1].order : 0) + 10;
+  else {
+    const i = sib.findIndex(r => { const rm = timeMin(r.t); return rm !== null && rm > m; });
+    order = i < 0 ? (sib.length ? sib[sib.length - 1].order : 0) + 10 : i === 0 ? sib[0].order - 5 : (sib[i - 1].order + sib[i].order) / 2;
+  }
+  const note = [PASS_KINDS[x.kind].replace(/^\S+\s/, ''), PASS_PARKS[x.park] && x.park ? PASS_PARKS[x.park] : '', x.onWin ? '当選後：' + x.onWin : '', x.note].filter(Boolean).join('／');
+  const row = { id, day: day.id, order, t: x.time || '', title: PASS_KINDS[x.kind].split(' ')[0] + ' ' + x.title, note: clip(note, 300), dl: '', fx: true, links: [] };
+  if (old) Object.assign(old, row); else state.plan.rows.push(row);
+  return 'added';
+}
+function passSyncMsg(r, x) {
+  return r === 'added' ? '日程に入れました（' + x.day + (x.time ? ' ' + x.time : '') + '）' : r === 'removed' ? '日程から外しました'
+    : r === 'noday' ? '日にちを入れると日程に入ります（例：11/2）' : r === 'full' ? '日程がいっぱいで入れられませんでした' : '';
+}
+// 時刻の入力部品: 時刻ピッカー＋種類（約／まで／から）。ピッカーで表せない文字は自由入力欄に出す
+function tpSet(id, val) {
+  const el = $(id), time = el.querySelector('.tp-time'), q = el.querySelector('.tp-q'), free = el.querySelector('.tp-free');
+  const m = /^(約)?(\d{1,2}):(\d{2})(まで|から)?$/.exec(val || '');
+  time.value = m ? String(m[2]).padStart(2, '0') + ':' + m[3] : '';
+  if (q) q.value = m ? (m[1] || m[4] || '') : '';
+  free.hidden = !(val && !m);
+  free.value = val && !m ? val : '';
+}
+function tpGet(id) {
+  const el = $(id), time = el.querySelector('.tp-time').value, q = el.querySelector('.tp-q'), free = el.querySelector('.tp-free');
+  if (!free.hidden && free.value.trim()) return cleanText(free.value, 20);
+  if (!time) return '';
+  const t = String(Number(time.slice(0, 2))) + time.slice(2), k = q ? q.value : '';
+  return cleanText(k === '約' ? '約' + t : t + (k || ''), 20);
+}
+document.querySelectorAll('.tp-clear').forEach(b => b.addEventListener('click', () => {
+  const el = b.closest('.tp'); el.querySelector('.tp-time').value = ''; const f = el.querySelector('.tp-free'); f.value = ''; f.hidden = true;
+}));
 function setPassPick(st) {
   passPickedStatus = st;
   document.querySelectorAll('#ps-status button').forEach(b => b.classList.toggle('sel', b.dataset.st === st));
@@ -1670,7 +1762,8 @@ function openPassModal(id) {
   $('pass-title-h').textContent = x ? 'ショー・パスを編集' : 'ショー・パスを追加';
   $('ps-kind').value = x ? x.kind : 'show'; $('ps-title').value = x ? x.title : '';
   $('ps-park').value = x ? x.park : ''; $('ps-day').value = x ? x.day : '';
-  $('ps-time').value = x ? x.time : ''; $('ps-note').value = x ? x.note : '';
+  tpSet('ps-time', x ? x.time : ''); $('ps-note').value = x ? x.note : '';
+  $('ps-win').value = x ? x.onWin : ''; $('ps-lose').value = x ? x.onLose : '';
   setPassPick(x ? x.status : 'none');
   $('ps-delete').style.display = x ? 'block' : 'none';
   $('pass-modal').style.display = 'flex'; document.body.style.overflow = 'hidden';
@@ -1683,10 +1776,12 @@ function savePass() {
   const orig = passEditId ? state.passes.find(p => p.id === passEditId) : null;
   if (passEditId && !orig) { closePassModal(); render(); showToast('これは、ほかの端末で削除されました', 'info'); return; }
   if (!orig && state.passes.length >= MAX_PASSES) { showToast('登録は' + MAX_PASSES + '件までです', 'error'); return; }
-  const data = { title, kind: $('ps-kind').value, park: $('ps-park').value, day: cleanText($('ps-day').value, 10), status: passPickedStatus, time: cleanText($('ps-time').value, 20), note: cleanMulti($('ps-note').value, 300) };
+  const data = { title, kind: $('ps-kind').value, park: $('ps-park').value, day: cleanText($('ps-day').value, 10), status: passPickedStatus, time: tpGet('ps-time'), note: cleanMulti($('ps-note').value, 300), onWin: cleanText($('ps-win').value, 100), onLose: cleanText($('ps-lose').value, 100) };
   if (orig) Object.assign(orig, data); else state.passes.push(Object.assign({ id: newId() }, data));
   state.passes = normPasses(state.passes);
-  save(); closePassModal(); render(); showToast('保存しました'); haptic();
+  const saved = orig ? state.passes.find(p => p.id === orig.id) : state.passes[state.passes.length - 1];
+  const m = saved ? passSyncMsg(syncPassRow(saved), saved) : '';
+  save(); closePassModal(); render(); showToast(m || '保存しました'); haptic();
 }
 function deletePass(id) {
   const x = state.passes.find(p => p.id === id); if (!x) return;
@@ -1694,9 +1789,9 @@ function deletePass(id) {
     title: '「' + x.title + '」を削除しますか？',
     message: '共有している場合は、共有相手の画面からも消えます。削除後、数秒間は「元に戻す」で取り消せます。',
     onOk: () => {
-      state.passes = state.passes.filter(p => p.id !== id);
+      state.passes = state.passes.filter(p => p.id !== id); removePassRow(x);
       closePassModal(); save(); render();
-      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { state.passes.push(x); save(); render(); } });
+      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { state.passes.push(x); syncPassRow(x); save(); render(); } });
     }
   });
 }
@@ -1707,7 +1802,12 @@ $('pass-body').addEventListener('click', e => {
   const st = e.target.closest('[data-pst]'), ed = e.target.closest('[data-pedit]');
   if (st) {
     const x = state.passes.find(p => p.id === st.dataset.pst);
-    if (x && x.status !== st.dataset.st) { x.status = st.dataset.st; save(); render(); haptic(); }
+    if (x && x.status !== st.dataset.st) {
+      const prev = x.status; x.status = st.dataset.st;
+      const r = syncPassRow(x); save(); render(); haptic();
+      const m = passSyncMsg(r, x);
+      if (m) showToast(m, r === 'added' ? 'success' : 'info', r === 'removed' ? { label: '元に戻す', fn: () => { x.status = prev; syncPassRow(x); save(); render(); } } : undefined);
+    }
   } else if (ed) openPassModal(ed.dataset.pedit);
 });
 $('btn-add-pass').addEventListener('click', () => openPassModal());
@@ -1751,13 +1851,14 @@ function buildFlat() {
     if (r.fx !== undefined) o.fx = !!r.fx;
     f['r' + r.id] = o;
   });
-  state.passes.forEach(x => { f['w' + x.id] = { id: x.id, title: x.title, kind: x.kind, park: x.park, day: x.day, status: x.status, time: x.time, note: x.note }; });
+  state.passes.forEach(x => { f['w' + x.id] = { id: x.id, title: x.title, kind: x.kind, park: x.park, day: x.day, status: x.status, time: x.time, note: x.note, onWin: x.onWin, onLose: x.onLose }; });
   if (state.plan.seeded) f['s'] = true;
+  if (state.plan.ret) f['sr'] = true;
   return f;
 }
 function applyFlat(f) {
   const rawItems = [], rawInfo = {}, pd = {}, rawDays = [], rawRows = [], rawPass = [];
-  let seeded = false;
+  let seeded = false, ret = false;
   Object.keys(f || {}).forEach(k => {
     const v = f[k], c = k[0], rest = k.slice(1);
     if (c === 'i' && v && typeof v === 'object') rawItems.push(v);
@@ -1767,9 +1868,10 @@ function applyFlat(f) {
     else if (c === 'r' && v && typeof v === 'object') rawRows.push(Object.assign({}, v, { id: rest }));
     else if (c === 'w' && v && typeof v === 'object') rawPass.push(Object.assign({}, v, { id: rest }));
     else if (k === 's' && v) seeded = true;
+    else if (k === 'sr' && v) ret = true;
   });
   const items = normItems(rawItems).sort((a, b) => a.id - b.id);
-  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded }) || emptyPlan(), passes: normPasses(rawPass) };
+  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded, ret }) || emptyPlan(), passes: normPasses(rawPass) };
   planDone = normDone(pd);
 }
 function persistQuiet() {
