@@ -1495,13 +1495,13 @@ function applyParkingChange(P) {
     r.links = (r.links || []).map(k => k.l.indexOf('駐車場の地図') >= 0 ? { l: k.l, h: NEW_PARKING_MAP } : k);
   });
 }
-// 版4: 駅が千里中央駅（駐車場から徒歩6分・大阪空港まで約12分）、自宅から駐車場まで運転25分に変更。手を加えていない行だけ直す
+// 版4・5: 駅が千里中央駅（駐車場から徒歩8分・大阪空港まで約12分）、自宅から駐車場まで運転25分に変更。手を加えていない行だけ直す
 const CAR_V4 = [
   ['a1', 't', '8:35', { t: '8:45', note: '理想 8:45 / 目標 8:55 / 必須 9:00。運転は25分見込み', dl: '必須 9:00' }],
-  ['a2', 't', '9:20まで', { t: '9:25まで', title: 'Times B 新千里北町団地（27号棟・南側）に駐車 → 千里中央駅へ徒歩6分' }],
+  ['a2', 't', '9:20まで', { t: '9:25まで', title: 'Times B 新千里北町団地（27号棟・南側）に駐車 → 千里中央駅へ徒歩8分' }],
   ['a3', 't', '9:22', { t: '9:25', title: '千里中央駅からモノレール', note: '理想 9:25 / 目標 9:35 / 必須 9:45。大阪空港まで約12分。千里中央発は、山田駅発の約3分後で見ています。⚠ 確認: 9:45を逃した場合の次の電車', dl: '必須 9:45', links: 'sta' }],
   ['b14', 'title', 'モノレールで山田駅へ', { title: 'モノレールで千里中央駅へ' }],
-  ['b15', 't', '約20:05', { t: '約20:02', title: '千里中央駅に着く → 駐車場まで徒歩6分' }],
+  ['b15', 't', '約20:05', { t: '約20:02', title: '千里中央駅に着く → 駐車場まで徒歩8分' }],
   ['b16', 't', '約20:45', { t: '約20:35', title: '帰宅（運転25分）' }]];
 function applyStationChange(P) {
   CAR_V4.forEach(v => {
@@ -1514,16 +1514,17 @@ function applyStationChange(P) {
 }
 function applyCarPlan() {
   const P = state.plan;
-  if (P.car >= 4 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
+  if (P.car >= 5 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
   const rowOf = id => P.rows.find(r => r.id === id);
   if (P.car === 1) {
     CAR_V2.forEach(v => { const r = rowOf(v[0]); if (r && r.t === v[1]) { r.t = v[2]; if (v[3]) r.note = v[3]; } });
     P.car = 2;
   }
   if (P.car === 2) { applyParkingChange(P); P.car = 3; }
-  if (P.car === 3) {
-    applyStationChange(P);
-    P.car = 4;
+  if (P.car === 3) { applyStationChange(P); P.car = 4; }
+  if (P.car === 4) { // 版5: 駐車場から駅まで徒歩6分 → 8分
+    ['a2', 'b15'].forEach(id => { const r = rowOf(id); if (r) r.title = r.title.replace('徒歩6分', '徒歩8分'); });
+    P.car = 5;
     state.passes.filter(x => x.status === 'won').forEach(syncPassRow);
     return;
   }
@@ -1553,7 +1554,7 @@ function applyCarPlan() {
   }
   applyParkingChange(P);
   applyStationChange(P);
-  P.car = 4;
+  P.car = 5;
   state.passes.filter(x => x.status === 'won').forEach(syncPassRow); // 当選済みのパスは新しい日程の時間順に入れ直す
 }
 function ensureSeed() {
