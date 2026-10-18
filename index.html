@@ -1480,13 +1480,32 @@ const CAR_PRE = [
 const CAR_V2 = [['c1', '約7:00', '約8:00'], ['c2', '約7:10', '約8:10'], ['c3', '約7:20', '約8:20'], ['c4', '約7:25', '約8:25'],
   ['e1', '7:45', '8:30'], ['e2', '8:00', '9:15'], ['e3', '約8:22', '約9:37'], ['e4', '約8:30', '約9:45'],
   ['e5', '8:45', '10:00', '開園は9:00。駐車料金 4,000円'], ['e6', '9:00', '10:00から', '開園は9:00（公式サイトで確認）。11/3は祝日']];
+// 版3: 11/1・11/3 の駐車場が「Times B 新千里北町団地」に変更。まだ手を加えていない行（古い駐車場の記載が残る行）だけ直す
+const CAR_V3 = [
+  ['p1', '津雲台', null, 'Times B【27号棟・南側】UR新千里北町団地駐車場（800円）。予約番号 BT261101-986340、車室番号 355'],
+  ['a2', '津雲台', 'Times B 新千里北町団地（27号棟・南側）に駐車 → 駅へ徒歩', '車室番号 355・予約番号 BT261101-986340。団地内が広いので、駐車前に予約確認メールの案内を確認。住所をナビに入れても正しく出ない場合あり'],
+  ['b15', '山田駅', '駅に着く → 駐車場まで徒歩', '駐車場は新千里北町団地（27号棟・南側）、車室番号 355']];
+const NEW_PARKING_MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('34.812759,135.495068');
+function applyParkingChange(P) {
+  CAR_V3.forEach(v => {
+    const r = P.rows.find(x => x.id === v[0]);
+    if (!r || (r.title + r.note).indexOf(v[1]) < 0) return;
+    if (v[2]) r.title = v[2];
+    r.note = v[3];
+    r.links = (r.links || []).map(k => k.l.indexOf('駐車場の地図') >= 0 ? { l: k.l, h: NEW_PARKING_MAP } : k);
+  });
+}
 function applyCarPlan() {
   const P = state.plan;
-  if (P.car >= 2 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
+  if (P.car >= 3 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
   const rowOf = id => P.rows.find(r => r.id === id);
   if (P.car === 1) {
     CAR_V2.forEach(v => { const r = rowOf(v[0]); if (r && r.t === v[1]) { r.t = v[2]; if (v[3]) r.note = v[3]; } });
     P.car = 2;
+  }
+  if (P.car === 2) {
+    applyParkingChange(P);
+    P.car = 3;
     state.passes.filter(x => x.status === 'won').forEach(syncPassRow);
     return;
   }
@@ -1514,7 +1533,8 @@ function applyCarPlan() {
     let n = Math.max.apply(null, [0].concat(P.rows.filter(r => r.day === 'pre').map(r => r.order)));
     CAR_PRE.forEach(q => { if (!rowOf(q[0])) P.rows.push({ id: q[0], day: 'pre', order: (n += 10), t: q[1], title: q[2], note: q[3], dl: '', fx: undefined, links: [] }); });
   }
-  P.car = 2;
+  applyParkingChange(P);
+  P.car = 3;
   state.passes.filter(x => x.status === 'won').forEach(syncPassRow); // 当選済みのパスは新しい日程の時間順に入れ直す
 }
 function ensureSeed() {
