@@ -612,7 +612,7 @@ function normPlan(pl) {
     seenR.add(id);
     rows.push({ id, day, order: num(r.order), t: cleanText(r.t, 20), title, note: cleanMulti(r.note, 300), dl: cleanText(r.dl, 20), fx: r.fx === undefined ? undefined : !!r.fx, links: safeLinks(r.links) });
   });
-  return { days: days.slice(0, MAX_DAYS), rows: rows.slice(0, MAX_ROWS), seeded: !!pl.seeded || days.length > 0 || rows.length > 0, ret: !!pl.ret };
+  return { days: days.slice(0, MAX_DAYS), rows: rows.slice(0, MAX_ROWS), seeded: !!pl.seeded || days.length > 0 || rows.length > 0, ret: !!pl.ret, car: !!pl.car };
 }
 const PASS_KINDS = { show: '🎭 ショー', parade: '🎆 パレード', dpa: '⚡ DPA', pp: '🎟 プライオリティパス', entry: '🎲 エントリー受付（抽選）', other: '📌 その他' };
 const PASS_PARKS = { '': 'パーク未定', land: 'ランド', sea: 'シー' };
@@ -733,7 +733,7 @@ function makeDefaultItems(existingNames) {
     .map((s, idx) => ({ id: base + idx, name: s[0], dest: s[1], memo: s[2], done: false }));
 }
 const emptyInfo = () => ({ trip: '', depart: '', stay: '', addr: '', sendDate: '', arrive: '', tracking: '', memo: '' });
-const emptyPlan = () => ({ days: [], rows: [], seeded: false, ret: false });
+const emptyPlan = () => ({ days: [], rows: [], seeded: false, ret: false, car: false });
 const defaultData = () => ({ items: makeDefaultItems([]), info: emptyInfo(), plan: emptyPlan(), passes: [] });
 
 function loadData() {
@@ -1433,7 +1433,79 @@ function seedPlan() {
     days.push({ id: d.id, title: d.title, sub: d.sub || '', order: (di + 1) * 1000 });
     d.rows.forEach((r, ri) => rows.push({ id: r.id, day: d.id, order: (ri + 1) * 10, t: r.t, title: r.title, note: r.note || '', dl: r.dl || '', fx: FIXED_SEED.has(r.id) ? true : undefined, links: (r.links || []).map(k => ({ l: k.l, h: k.h })) }));
   });
-  state.plan = { days, rows, seeded: true, ret: false };
+  state.plan = { days, rows, seeded: true, ret: false, car: false };
+}
+// 交通手段の変更（レンタカー案）を日程へ反映する。一度だけ実行し、初期データにも既存データにも同じ手順で適用する
+// 行は [id, 時刻, 内容, メモ, 動かせない予定か]。リンクは既存の行のものを引き継ぐ
+const CAR_D1 = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9',
+  ['a10', '14:00', '店を出る → レンタカーの送迎車の乗り場へ', '時間があればキッズスペース（14:10まで）'],
+  ['f1', '14:15', '送迎車でレンタカー羽田空港店へ', '約15分。送迎車にチャイルドシートがあるか確認'],
+  ['f2', '14:30', 'レンタカーを受け取る', 'チャイルドシートの取付まで15〜30分。ETCカードの利用料も確認', true],
+  ['f3', '14:50', '羽田空港店 → ホテル（運転）', '約38分・27.2km・ETC 970円'],
+  ['a13', '15:30', 'ホテルに到着 → チェックイン', 'チェックイン 15:00から。ホテルの駐車場は先着順'],
+  ['f4', '15:30', '客室で休憩', '17:30まで。お子さまの様子に合わせる'],
+  ['f5', '17:30', 'ホテル → イクスピアリ（運転）', '約22分'],
+  ['f6', '17:55', '夕食・買い物（イクスピアリ）', '20:15まで。駐車料金と、無料になる条件を確認'],
+  ['f7', '20:15', 'イクスピアリ → ホテル（運転）', '約22分'],
+  ['f8', '20:40', 'ホテルに戻る', '']];
+const CAR_D2 = [
+  ['g1', '8:10', 'ホテルを出発 → イオン新浦安に駐車', '運転7分・2.0km。駐車は平日の最大料金 1,000円'],
+  ['g2', '約8:17', 'イオン → 新浦安駅（徒歩）', '約5分'],
+  ['g3', '8:30', '新浦安 → 舞浜（JR）', '乗車3分・大人199円/人。電車を待つ余裕あり'],
+  ['g4', '約8:35', '舞浜駅 → ランド入口に到着', '徒歩約2分（余裕を見る）。開園9:00まで25分'],
+  ['g5', '9:00', 'ディズニーランド開園', '開園時刻は公式サイトで確認。お昼寝は当日の様子で決める'],
+  ['g6', '退園後', 'ランド → 舞浜 → 新浦安 → イオン → ホテル', '約20〜25分。ホテルに戻るなら往復約45〜50分']];
+const CAR_D3 = [
+  'c1', 'c2', 'c3', 'c4',
+  ['e1', '7:45', '朝食 → チェックアウト → スーツケースを車に積む', 'チェックアウトは11:00まで'],
+  ['e2', '8:00', 'ホテル → シー公式駐車場（運転）', '約22分'],
+  ['e3', '約8:22', '駐車場の入庫待ち', '祝日のため余裕を見る'],
+  ['e4', '約8:30', '駐車場 → シー入口（徒歩）', '約10〜15分'],
+  ['e5', '8:45', 'ディズニーシー入口に到着', '開園9:00まで15分。駐車料金 4,000円'],
+  ['e6', '9:00', 'パークで過ごす（ベビーカー使用）', '開園時刻は公式サイトで確認。11/3は祝日'],
+  ['e7', '15:00', 'シーを出る', '返却を15:30にするとレンタカー代が約860円安く、シーを出る時刻は約1時間早まる'],
+  ['e8', '15:00から', 'シー入口 → 駐車場、出庫', '約10〜15分と出庫待ち'],
+  ['e9', '約15:25', 'シー駐車場 → 羽田（運転）', '約35〜40分・ETC約970円'],
+  ['e10', '約16:05', '給油（満タン返し）', '約10分'],
+  ['e11', '16:15', 'レンタカーを返却', '返却は16:30まで（予約済み）', true],
+  ['e12', '16:30', '送迎車でターミナルへ', '約15分'],
+  ['b7', '16:45', '羽田第1ターミナルに到着', '手荷物の締切17:35まで余裕50分'],
+  'b8', 'b9', 'b10', 'b11', 'b12', 'b13', 'b14', 'b15', 'b16'];
+const CAR_PRE = [
+  ['q1', '', 'リムジンバス（11/1 14:45発）のキャンセル条件と期限を確認', '予約済みだが、レンタカー案では使わない。家族3,250円'],
+  ['q2', '', 'レンタカーの確認：ETCカードの利用料、チャイルドシートの取付、受取を14:30より早められるか', ''],
+  ['q3', '', 'シー公式駐車場：祝日の入庫待ちと、駐車場から入口までの徒歩を確認', '料金4,000円は画像で確認した分のみ'],
+  ['q4', '', 'ホテルの駐車場：満車の場合と、車を出し入れしたときの時間の数え方を確認', '先着順で予約できない']];
+function applyCarPlan() {
+  const P = state.plan;
+  if (P.car || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
+  const rowOf = id => P.rows.find(r => r.id === id);
+  const lay = (dayId, list, tail) => { // list の順に並べ、指定の行は内容を差し替える（無い行は作る）
+    let n = 0;
+    list.forEach(it => {
+      const spec = Array.isArray(it) ? it : null, id = spec ? spec[0] : it;
+      let r = rowOf(id);
+      if (!r && !spec) return;
+      n++;
+      if (!r) { r = { id, day: dayId, order: 0, t: '', title: '', note: '', dl: '', fx: undefined, links: [] }; P.rows.push(r); }
+      if (spec) Object.assign(r, { day: dayId, t: spec[1], title: spec[2], note: spec[3], dl: '', fx: spec[4] ? true : r.fx });
+      else if (/^c\d$/.test(id)) r.t = { c1: '約7:00', c2: '約7:10', c3: '約7:20', c4: '約7:25' }[id] || r.t; // 荷物の送り返しを出発前に移す
+      r.order = n * 10;
+    });
+  };
+  ['a11', 'a12', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6'].forEach(id => { P.rows = P.rows.filter(r => r.id !== id); delete planDone[id]; });
+  if (P.days.some(d => d.id === 'd1')) lay('d1', CAR_D1);
+  if (P.days.some(d => d.id === 'd3')) lay('d3', CAR_D3);
+  let d2 = P.days.find(d => dateKey(d.title) === 1102);
+  if (!d2 && P.days.length < MAX_DAYS) { d2 = { id: 'd2', title: '11/2（月） ランド', sub: 'イオン新浦安に駐車 → JRで舞浜', order: 2500 }; P.days.push(d2); }
+  if (d2) lay(d2.id, CAR_D2.map(r => r.slice()));
+  const pre = P.days.find(d => d.id === 'pre');
+  if (pre) {
+    let n = Math.max.apply(null, [0].concat(P.rows.filter(r => r.day === 'pre').map(r => r.order)));
+    CAR_PRE.forEach(q => { if (!rowOf(q[0])) P.rows.push({ id: q[0], day: 'pre', order: (n += 10), t: q[1], title: q[2], note: q[3], dl: '', fx: undefined, links: [] }); });
+  }
+  P.car = true;
+  state.passes.filter(x => x.status === 'won').forEach(syncPassRow); // 当選済みのパスは新しい日程の時間順に入れ直す
 }
 function ensureSeed() {
   if (!state.plan) state.plan = emptyPlan();
@@ -1451,6 +1523,7 @@ function ensureSeed() {
     }
     state.plan.ret = true;
   }
+  applyCarPlan();
   // 固定フラグが未設定の初期の予定には、予約済みの印を付ける（一度設定したら変更しない）
   state.plan.rows.forEach(r => { if (r.fx === undefined && FIXED_SEED.has(r.id)) r.fx = true; });
 }
@@ -1859,11 +1932,12 @@ function buildFlat() {
   state.passes.forEach(x => { f['w' + x.id] = { id: x.id, title: x.title, kind: x.kind, park: x.park, day: x.day, status: x.status, time: x.time, note: x.note, onWin: x.onWin, onLose: x.onLose }; });
   if (state.plan.seeded) f['s'] = true;
   if (state.plan.ret) f['sr'] = true;
+  if (state.plan.car) f['sc'] = true;
   return f;
 }
 function applyFlat(f) {
   const rawItems = [], rawInfo = {}, pd = {}, rawDays = [], rawRows = [], rawPass = [];
-  let seeded = false, ret = false;
+  let seeded = false, ret = false, car = false;
   Object.keys(f || {}).forEach(k => {
     const v = f[k], c = k[0], rest = k.slice(1);
     if (c === 'i' && v && typeof v === 'object') rawItems.push(v);
@@ -1874,9 +1948,10 @@ function applyFlat(f) {
     else if (c === 'w' && v && typeof v === 'object') rawPass.push(Object.assign({}, v, { id: rest }));
     else if (k === 's' && v) seeded = true;
     else if (k === 'sr' && v) ret = true;
+    else if (k === 'sc' && v) car = true;
   });
   const items = normItems(rawItems).sort((a, b) => a.id - b.id);
-  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded, ret }) || emptyPlan(), passes: normPasses(rawPass) };
+  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded, ret, car }) || emptyPlan(), passes: normPasses(rawPass) };
   planDone = normDone(pd);
 }
 function persistQuiet() {
