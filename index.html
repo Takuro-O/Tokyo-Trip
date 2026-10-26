@@ -249,7 +249,9 @@ body.editing #sel-bar { display: flex; }
 .dl { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: #fef2f2; color: #b91c1c; }
 .nx { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: var(--c-primary); color: #fff; }
 .prow.next { background: var(--c-primary-light); }
-.now-card { display: block; width: calc(100% - 32px); margin: 12px 16px 4px; padding: 14px 16px; text-align: left; border: 1px solid var(--c-primary); border-radius: 14px; background: var(--c-primary-light); color: var(--c-text); font: inherit; cursor: pointer; }
+.now-card { display: flex; align-items: center; margin: 12px 16px 4px; border: 1px solid var(--c-primary); border-radius: 14px; background: var(--c-primary-light); color: var(--c-text); }
+.now-card .now-go { flex: 1; min-width: 0; display: block; padding: 14px 8px 14px 16px; text-align: left; border: none; background: none; color: inherit; font: inherit; cursor: pointer; }
+.now-card .now-ok { flex: none; width: 76px; height: 56px; margin-right: 12px; border: none; border-radius: 12px; background: var(--c-primary); color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 .now-card .now-lab { display: block; font-size: 12px; font-weight: 700; color: var(--c-primary); letter-spacing: .04em; }
 .now-card .now-t { display: block; margin-top: 2px; font-size: 30px; font-weight: 800; line-height: 1.2; color: var(--c-primary); }
 .now-card .now-t small { font-size: 14px; font-weight: 700; }
@@ -1684,19 +1686,20 @@ function renderNowCard() {
       const left = Math.round((Date.UTC(2026, 10, 1) - Date.UTC(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
       const pre = model.find(d => d.id === 'pre');
       const rest = pre ? pre.rows.filter(r => !planDone[r.id]).length : 0;
-      html = '<button class="now-card tappable" data-nowgo="day:pre"><span class="now-lab">出発まで</span>' +
+      html = '<div class="now-card"><button class="now-go tappable" data-nowgo="day:pre"><span class="now-lab">出発まで</span>' +
         '<span class="now-t">あと' + left + '日</span>' +
-        '<span class="now-sub">' + (rest ? '事前にやること 残り' + rest + '件' : '事前にやることは完了') + '</span></button>';
+        '<span class="now-sub">' + (rest ? '事前にやること 残り' + rest + '件' : '事前にやることは完了') + '</span></button></div>';
     } else if (ymd <= 20261103) {
       const day = model.find(d => dateKey(d.title) === key);
       if (day) {
         const r = day.rows.find(x => !planDone[x.id]);
         if (r) {
-          html = '<button class="now-card tappable" data-nowgo="row:' + esc(r.id) + '"><span class="now-lab">いま・次</span>' +
+          html = '<div class="now-card"><button class="now-go tappable" data-nowgo="row:' + esc(r.id) + '"><span class="now-lab">いま・次</span>' +
             (r.t ? '<span class="now-t">' + fmtT(r.t) + '</span>' : '') +
-            '<span class="now-ti">' + esc(r.title) + '</span></button>';
+            '<span class="now-ti">' + esc(r.title) + '</span></button>' +
+            '<button class="now-ok tappable" data-nowdone="' + esc(r.id) + '" aria-label="済みにする">✓ 済み</button></div>';
         } else if (day.rows.length) {
-          html = '<div class="now-card" role="status"><span class="now-lab">今日</span><span class="now-ti">今日の予定はすべて完了です</span></div>';
+          html = '<div class="now-card" role="status"><div class="now-go"><span class="now-lab">今日</span><span class="now-ti">今日の予定はすべて完了です</span></div></div>';
         }
       }
     }
@@ -1850,6 +1853,13 @@ $('page-plan').addEventListener('click', e => {
   if (e.target.closest('a')) return;
   const nowgo = e.target.closest('[data-nowgo]');
   if (nowgo) { goNowTarget(nowgo.dataset.nowgo); return; }
+  const nowdone = e.target.closest('[data-nowdone]');
+  if (nowdone) {
+    const id = nowdone.dataset.nowdone;
+    planDone[id] = true; savePlanDone(); haptic(); render();
+    showToast('済みにしました', 'info', { label: '元に戻す', fn: () => { delete planDone[id]; savePlanDone(); render(); } });
+    return;
+  }
   const chk = e.target.closest('[data-chk]');
   const body = e.target.closest('[data-pid]');
   const day = e.target.closest('[data-day]');
