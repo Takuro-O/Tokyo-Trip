@@ -1472,7 +1472,7 @@ const CAR_D3 = [
   ['b7', '16:45', '羽田第1ターミナルに到着', '手荷物の締切17:35まで余裕50分'],
   'b8', 'b9', 'b10', 'b11', 'b12', 'b13', 'b14', 'b15', 'b16'];
 const CAR_PRE = [
-  ['q1', '', 'リムジンバス（11/1 14:45発）のキャンセル条件と期限を確認', '予約済みだが、レンタカー案では使わない。家族3,250円'],
+  ['q1', '', 'リムジンバス（11/1 14:45発）をキャンセル', '手続き済み（家族3,250円）'],
   ['q2', '', 'レンタカーの確認：ETCカードの利用料、チャイルドシートが取り付け済みか、受取を14:30より早められるか', ''],
   ['q3', '', 'シー公式駐車場：祝日の入庫待ちと、駐車場から入口までの徒歩を確認', '料金4,000円は画像で確認した分のみ'],
   ['q4', '', 'ホテルの駐車場：満車の場合と、車を出し入れしたときの時間の数え方を確認', '先着順で予約できない']];
@@ -1514,7 +1514,7 @@ function applyStationChange(P) {
 }
 function applyCarPlan() {
   const P = state.plan;
-  if (P.car >= 6 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
+  if (P.car >= 7 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
   const rowOf = id => P.rows.find(r => r.id === id);
   if (P.car === 1) {
     CAR_V2.forEach(v => { const r = rowOf(v[0]); if (r && r.t === v[1]) { r.t = v[2]; if (v[3]) r.note = v[3]; } });
@@ -1531,6 +1531,11 @@ function applyCarPlan() {
     if (f2 && f2.note.indexOf('取付まで15〜30分') >= 0) f2.note = 'チャイルドシートは取り付け済みで渡される。ETCカードの利用料も確認';
     if (q2) q2.title = q2.title.replace('チャイルドシートの取付', 'チャイルドシートが取り付け済みか');
     P.car = 6;
+  }
+  if (P.car === 6) { // 版7: 11/1のリムジンバスはキャンセル済み（チェックを入れる）
+    const q1 = rowOf('q1');
+    if (q1 && q1.title.indexOf('キャンセル条件') >= 0) { q1.title = 'リムジンバス（11/1 14:45発）をキャンセル'; q1.note = '手続き済み（家族3,250円）'; planDone.q1 = true; }
+    P.car = 7;
     state.passes.filter(x => x.status === 'won').forEach(syncPassRow);
     return;
   }
@@ -1560,7 +1565,7 @@ function applyCarPlan() {
   }
   applyParkingChange(P);
   applyStationChange(P);
-  P.car = 6;
+  P.car = 7;
   state.passes.filter(x => x.status === 'won').forEach(syncPassRow); // 当選済みのパスは新しい日程の時間順に入れ直す
 }
 function ensureSeed() {
