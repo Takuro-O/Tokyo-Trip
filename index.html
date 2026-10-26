@@ -1337,7 +1337,7 @@ $('import-file').addEventListener('change', e => {
       title: 'バックアップを読み込みますか？',
       message: '現在のデータは置き換えられます（持ち物 ' + clean.items.length + '件）。共有している場合は、共有相手の画面も同じ内容に置き換わります。',
       label: '読み込む',
-      onOk: () => { const keep = state.plan, keepP = state.passes; state = clean; if (!state.plan) state.plan = keep; if (!state.passes) state.passes = keepP; ensureSeed(); save(); fillInfoForm(); render(); showToast('読み込みました'); }
+      onOk: () => { const keep = state.plan, keepP = state.passes; state = clean; if (!state.plan) state.plan = keep; if (!state.passes) state.passes = keepP; state.passes.forEach(x => { delete passGone[x.id]; }); savePassGone(); ensureSeed(); save(); fillInfoForm(); render(); showToast('読み込みました'); }
     });
   };
   r.onerror = () => showToast('読み込めませんでした', 'error');
@@ -1414,6 +1414,10 @@ function savePlanDone() {
   if (!ok) notifyOnce('save', SAVE_FAIL, 'error', 30000);
   try { schedulePush(); } catch (e) { reportError(e); }
 }
+// 削除したパスの「墓標」。共有側からキーが消えただけでは、同期の基準値を失った端末や編集の残る端末が復活させてしまうため、消した印を残す
+const GONE_KEY = 'travelPassGone_v1';
+let passGone = normDone(parseJSON(store.get(GONE_KEY), {}));
+function savePassGone() { try { store.set(GONE_KEY, JSON.stringify(passGone)); } catch (e) {} }
 const planOpen = new Set();
 const planFold = new Set();
 let planScrolled = false;
@@ -2002,8 +2006,9 @@ function deletePass(id) {
     message: '共有している場合は、共有相手の画面からも消えます。削除後、数秒間は「元に戻す」で取り消せます。',
     onOk: () => {
       state.passes = state.passes.filter(p => p.id !== id); removePassRow(x);
+      passGone[id] = true; savePassGone();
       closePassModal(); save(); render();
-      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { state.passes.push(x); syncPassRow(x); save(); render(); } });
+      showToast('削除しました', 'info', { label: '元に戻す', fn: () => { delete passGone[id]; savePassGone(); state.passes.push(x); syncPassRow(x); save(); render(); } });
     }
   });
 }
@@ -2064,13 +2069,14 @@ function buildFlat() {
     f['r' + r.id] = o;
   });
   state.passes.forEach(x => { f['w' + x.id] = { id: x.id, title: x.title, kind: x.kind, park: x.park, day: x.day, status: x.status, time: x.time, note: x.note, onWin: x.onWin, onLose: x.onLose }; });
+  Object.keys(passGone).forEach(k => { if (passGone[k]) f['x' + k] = true; });
   if (state.plan.seeded) f['s'] = true;
   if (state.plan.ret) f['sr'] = true;
   if (state.plan.car) f['sc'] = state.plan.car;
   return f;
 }
 function applyFlat(f) {
-  const rawItems = [], rawInfo = {}, pd = {}, rawDays = [], rawRows = [], rawPass = [];
+  const rawItems = [], rawInfo = {}, pd = {}, rawDays = [], rawRows = [], rawPass = [], gone = {};
   let seeded = false, ret = false, car = 0;
   Object.keys(f || {}).forEach(k => {
     const v = f[k], c = k[0], rest = k.slice(1);
@@ -2080,16 +2086,22 @@ function applyFlat(f) {
     else if (c === 'd' && v && typeof v === 'object') rawDays.push(Object.assign({}, v, { id: rest }));
     else if (c === 'r' && v && typeof v === 'object') rawRows.push(Object.assign({}, v, { id: rest }));
     else if (c === 'w' && v && typeof v === 'object') rawPass.push(Object.assign({}, v, { id: rest }));
+    else if (c === 'x' && v) gone[rest] = true;
     else if (k === 's' && v) seeded = true;
     else if (k === 'sr' && v) ret = true;
     else if (k === 'sc' && v) car = Number(v === true ? 1 : v) || 0;
   });
   const items = normItems(rawItems).sort((a, b) => a.id - b.id);
-  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded, ret, car }) || emptyPlan(), passes: normPasses(rawPass) };
+  state = { items, info: normInfo(rawInfo), plan: normPlan({ days: rawDays, rows: rawRows, seeded, ret, car }) || emptyPlan(), passes: normPasses(rawPass.filter(x => !gone[x.id])) };
   planDone = normDone(pd);
+  passGone = normDone(gone);
+  // 削除済みのパスが日程に残した行も、一緒に取り除く
+  state.plan.rows = state.plan.rows.filter(r => !(r.id.indexOf('ps') === 0 && gone[r.id.slice(2)]));
+  Object.keys(gone).forEach(g => { delete planDone['ps' + g]; });
 }
 function persistQuiet() {
   const a = store.set(KEY, JSON.stringify(state)), b = store.set(PLAN_KEY, JSON.stringify(planDone));
+  savePassGone();
   if (!a || !b) notifyOnce('save', SAVE_FAIL, 'error', 30000);
 }
 function loadBaseline() {
@@ -2101,7 +2113,7 @@ function saveBaseline() {
   try { ok = store.set('travelSyncBase2_' + SYNC.tripId, JSON.stringify(SYNC.baseline)); } catch (e) { ok = false; }
   return ok;
 }
-const SYNC_KINDS = 'ifpdrsw'; // この版が扱う共有データの種類（キーの頭文字）
+const SYNC_KINDS = 'ifpdrswx'; // この版が扱う共有データの種類（キーの頭文字）
 function diffPatch() {
   const loc = buildFlat(), base = SYNC.baseline || {}, p = {};
   Object.keys(loc).forEach(k => { if (ser(loc[k]) !== ser(base[k])) p[k] = loc[k]; });
@@ -2147,7 +2159,7 @@ function onRemote(exists, remote, pending) {
     if (exists) {
       // 共有側に無いパスがこの端末にあれば残す（共有側から消えていた場合の取りこぼし防止。パスには初期値が無いので重複しない）
       const out = Object.assign({}, remote), loc = buildFlat();
-      Object.keys(loc).forEach(k => { if (k[0] === 'w' && !(k in remote)) out[k] = loc[k]; });
+      Object.keys(loc).forEach(k => { if ((k[0] === 'w' || k[0] === 'x') && !(k in remote)) out[k] = loc[k]; });
       SYNC.baseline = remote; applyFlat(out);
     } else { SYNC.baseline = {}; }
   } else {
@@ -2182,8 +2194,8 @@ SYNC.tripId = resolveTripId();
 ensureSeed(); persistQuiet();
 window.addEventListener('online', pushNow);
 window.addEventListener('storage', e => {
-  if (e.key !== KEY && e.key !== PLAN_KEY) return;
-  state = loadData(); planDone = normDone(parseJSON(store.get(PLAN_KEY), {})); ensureSeed();
+  if (e.key !== KEY && e.key !== PLAN_KEY && e.key !== GONE_KEY) return;
+  state = loadData(); planDone = normDone(parseJSON(store.get(PLAN_KEY), {})); passGone = normDone(parseJSON(store.get(GONE_KEY), {})); ensureSeed();
   render();
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pushNow(); });
