@@ -1515,9 +1515,19 @@ function applyStationChange(P) {
 function removeFinishedRows(P) {
   ['p1', 'p4', 'q1'].forEach(id => { P.rows = P.rows.filter(r => r.id !== id); delete planDone[id]; });
 }
+// 版9: 11/1 の夕食はスシロー新浦安フォルテ店（17:30予約）。イクスピアリの行は、まだ元のままのときだけ置き換える
+function applyDinner(P) {
+  const patch = (id, t0, f) => { const r = P.rows.find(x => x.id === id); if (r && r.t === t0) Object.assign(r, f); };
+  patch('f4', '15:30', { note: '17:05まで。お子さまの様子に合わせる' });
+  patch('f5', '17:30', { t: '17:05', title: 'ホテル → スシロー新浦安フォルテ店（運転）', note: '予約の17:30に間に合うよう、余裕を見て出発', links: [{ l: '🗺 スシロー', h: MAP('スシロー 新浦安フォルテ店') }] });
+  patch('f6', '17:55', { t: '17:30', title: '夕食（スシロー新浦安フォルテ店・予約済み）', note: '' });
+  patch('f7', '20:15', { t: '18:45', title: 'スシロー → ホテル（運転）', note: '' });
+  patch('f8', '20:40', { t: '19:10', title: 'ホテルに戻る', note: '' });
+  P.car = 9;
+}
 function applyCarPlan() {
   const P = state.plan;
-  if (P.car >= 8 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
+  if (P.car >= 9 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
   const rowOf = id => P.rows.find(r => r.id === id);
   if (P.car === 1) {
     CAR_V2.forEach(v => { const r = rowOf(v[0]); if (r && r.t === v[1]) { r.t = v[2]; if (v[3]) r.note = v[3]; } });
@@ -1535,7 +1545,7 @@ function applyCarPlan() {
     if (q2) q2.title = q2.title.replace('チャイルドシートの取付', 'チャイルドシートが取り付け済みか');
     P.car = 6;
   }
-  if (P.car >= 6) { removeFinishedRows(P); P.car = 8;
+  if (P.car >= 6) { if (P.car < 8) removeFinishedRows(P); P.car = 8; applyDinner(P);
     state.passes.filter(x => x.status === 'won').forEach(syncPassRow);
     return;
   }
@@ -1567,6 +1577,7 @@ function applyCarPlan() {
   applyStationChange(P);
   removeFinishedRows(P);
   P.car = 8;
+  applyDinner(P);
   state.passes.filter(x => x.status === 'won').forEach(syncPassRow); // 当選済みのパスは新しい日程の時間順に入れ直す
 }
 function ensureSeed() {
