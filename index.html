@@ -249,6 +249,12 @@ body.editing #sel-bar { display: flex; }
 .dl { display: inline-block; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: #fef2f2; color: #b91c1c; }
 .nx { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; background: var(--c-primary); color: #fff; }
 .prow.next { background: var(--c-primary-light); }
+.now-card { display: block; width: calc(100% - 32px); margin: 12px 16px 4px; padding: 14px 16px; text-align: left; border: 1px solid var(--c-primary); border-radius: 14px; background: var(--c-primary-light); color: var(--c-text); font: inherit; cursor: pointer; }
+.now-card .now-lab { display: block; font-size: 12px; font-weight: 700; color: var(--c-primary); letter-spacing: .04em; }
+.now-card .now-t { display: block; margin-top: 2px; font-size: 30px; font-weight: 800; line-height: 1.2; color: var(--c-primary); }
+.now-card .now-t small { font-size: 14px; font-weight: 700; }
+.now-card .now-ti { display: block; margin-top: 2px; font-size: 17px; font-weight: 700; line-height: 1.4; }
+.now-card .now-sub { display: block; margin-top: 4px; font-size: 13px; color: var(--c-sub); }
 .prow.done .dl { background: var(--c-surface); color: var(--c-sub); }
 .plinks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .plinks a { display: inline-block; padding: 8px 12px; border-radius: 18px; background: var(--c-bg); border: 1px solid var(--c-border); color: var(--c-primary); font-size: 13px; font-weight: 600; text-decoration: none; }
@@ -320,6 +326,7 @@ body.editing #sel-bar { display: flex; }
 
     <!-- 日程 -->
     <div id="page-plan" class="page" style="display:none;">
+      <div id="now-card"></div>
       <div id="plan-body"></div>
       <div style="margin:16px 16px 0;">
         <button id="btn-add-day" class="btn secondary tappable">＋ 日を追加</button>
@@ -1643,12 +1650,53 @@ function renderPlan() {
     html += '</div>' + ('<div class="day-acts"><button class="tappable" data-addrow="' + esc(d.id) + '">＋ 予定を追加</button><button class="tappable" data-editday="' + esc(d.id) + '">この日を編集</button></div>');
   });
   $('plan-body').innerHTML = html;
+  renderNowCard();
   if (!planScrolled) {
     planScrolled = true;
     const el = document.querySelector('.prow.next');
     if (el) setTimeout(() => el.scrollIntoView({ block: 'center' }), 60);
   }
 }
+// 日程タブの先頭に出す「いま・次」カード。旅行中はその日の最初の未完了の予定、出発前はカウントダウン
+function renderNowCard() {
+  const el = $('now-card');
+  if (!el) return;
+  let html = '';
+  try {
+    const t = new Date(), ymd = t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate(), key = (t.getMonth() + 1) * 100 + t.getDate();
+    const model = planModel();
+    if (ymd < 20261101) {
+      const left = Math.round((Date.UTC(2026, 10, 1) - Date.UTC(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+      const pre = model.find(d => d.id === 'pre');
+      const rest = pre ? pre.rows.filter(r => !planDone[r.id]).length : 0;
+      html = '<button class="now-card tappable" data-nowgo="day:pre"><span class="now-lab">出発まで</span>' +
+        '<span class="now-t">あと' + left + '日</span>' +
+        '<span class="now-sub">' + (rest ? '事前にやること 残り' + rest + '件' : '事前にやることは完了') + '</span></button>';
+    } else if (ymd <= 20261103) {
+      const day = model.find(d => dateKey(d.title) === key);
+      if (day) {
+        const r = day.rows.find(x => !planDone[x.id]);
+        if (r) {
+          html = '<button class="now-card tappable" data-nowgo="row:' + esc(r.id) + '"><span class="now-lab">いま・次</span>' +
+            (r.t ? '<span class="now-t">' + fmtT(r.t) + '</span>' : '') +
+            '<span class="now-ti">' + esc(r.title) + '</span></button>';
+        } else if (day.rows.length) {
+          html = '<div class="now-card" role="status"><span class="now-lab">今日</span><span class="now-ti">今日の予定はすべて完了です</span></div>';
+        }
+      }
+    }
+  } catch (e) { try { reportError(e); } catch (e2) {} }
+  el.innerHTML = html;
+}
+function goNowTarget(target) {
+  const isDay = target.indexOf('day:') === 0, id = target.slice(target.indexOf(':') + 1);
+  const dayId = isDay ? id : (state.plan.rows.find(r => r.id === id) || {}).day;
+  if (dayId && planFold.has(dayId)) { planFold.delete(dayId); renderPlan(); }
+  const sel = isDay ? '[data-day="' + id + '"]' : '[data-pid="' + id + '"]';
+  const node = document.querySelector('#plan-body ' + sel);
+  if (node) node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { renderNowCard(); } catch (e) {} } });
 /* ---------- 日程の編集 ---------- */
 function newId() { return 'x' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
 function closePlanModals() {
@@ -1785,6 +1833,8 @@ function deleteDay(id) {
 }
 $('page-plan').addEventListener('click', e => {
   if (e.target.closest('a')) return;
+  const nowgo = e.target.closest('[data-nowgo]');
+  if (nowgo) { goNowTarget(nowgo.dataset.nowgo); return; }
   const chk = e.target.closest('[data-chk]');
   const body = e.target.closest('[data-pid]');
   const day = e.target.closest('[data-day]');
