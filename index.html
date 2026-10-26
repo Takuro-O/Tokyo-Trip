@@ -1538,6 +1538,15 @@ function applyDinner(P) {
   patch('f8', '20:40', { t: '19:10', title: 'ホテルに戻る', note: '' });
   P.car = 9;
 }
+// 版11: ホテルからスシローまで車で5分。まだ手を加えていない行だけ直す
+function applyShortDrive(P) {
+  const patch = (id, key, v0, f) => { const r = P.rows.find(x => x.id === id); if (r && r[key] === v0) Object.assign(r, f); };
+  patch('f4', 'note', '17:05まで。お子さまの様子に合わせる', { note: '17:15まで。お子さまの様子に合わせる' });
+  patch('f5', 't', '17:05', { t: '17:15', note: '運転5分。予約の17:30まで余裕を見て出発' });
+  patch('f7', 'note', '', { note: '運転5分' });
+  patch('f8', 't', '19:10', { t: '18:50' });
+  P.car = 11;
+}
 // 版10: 備考に残っている「⚠ 確認: …」「推定」の表示を消す（確かな情報だけを見せる）
 function applyNoteCleanup(P) {
   P.rows.forEach(r => {
@@ -1549,7 +1558,7 @@ function applyNoteCleanup(P) {
 }
 function applyCarPlan() {
   const P = state.plan;
-  if (P.car >= 10 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
+  if (P.car >= 11 || !P.days.some(d => d.id === 'd1' || d.id === 'd3')) return;
   const rowOf = id => P.rows.find(r => r.id === id);
   if (P.car === 1) {
     CAR_V2.forEach(v => { const r = rowOf(v[0]); if (r && r.t === v[1]) { r.t = v[2]; if (v[3]) r.note = v[3]; } });
@@ -1570,6 +1579,7 @@ function applyCarPlan() {
   if (P.car >= 6) { if (P.car < 8) removeFinishedRows(P); P.car = 8; applyDinner(P);
     state.passes.filter(x => x.status === 'won').forEach(syncPassRow);
     applyNoteCleanup(P);
+    applyShortDrive(P);
     return;
   }
   const lay = (dayId, list, tail) => { // list の順に並べ、指定の行は内容を差し替える（無い行は作る）
@@ -1603,6 +1613,7 @@ function applyCarPlan() {
   applyDinner(P);
   state.passes.filter(x => x.status === 'won').forEach(syncPassRow); // 当選済みのパスは新しい日程の時間順に入れ直す
   applyNoteCleanup(P);
+  applyShortDrive(P);
 }
 function ensureSeed() {
   if (!state.plan) state.plan = emptyPlan();
